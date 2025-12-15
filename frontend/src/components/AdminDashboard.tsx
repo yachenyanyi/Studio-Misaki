@@ -7,7 +7,7 @@ import UsersManager from './admin/UsersManager';
 import ArticleEditor from './admin/ArticleEditor';
 import api from '../api';
 
-type ViewMode = 'dashboard' | 'articles' | 'editor';
+type ViewMode = 'dashboard' | 'articles' | 'editor' | 'users';
 
 interface SiteVisit {
     id: number;
@@ -24,33 +24,35 @@ interface DashboardStats {
 }
 
 const AdminDashboard: React.FC = () => {
-  const { isAuthenticated, isStaff, logout, checkAuth } = useAuth();
+  const { isAuthenticated, isStaff, logout, loading } = useAuth();
   const navigate = useNavigate();
   const [view, setView] = useState<ViewMode>('dashboard');
   const [editingArticleId, setEditingArticleId] = useState<number | undefined>(undefined);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    checkAuth().then(() => setAuthReady(true));
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    if (authReady && (!isAuthenticated || !isStaff)) {
+    if (!loading && (!isAuthenticated || !isStaff)) {
       navigate('/');
     }
-  }, [authReady, isAuthenticated, isStaff, navigate]);
+  }, [loading, isAuthenticated, isStaff, navigate]);
 
   useEffect(() => {
-      if (view === 'dashboard' && isAuthenticated && isStaff) {
+      if (view === 'dashboard' && !loading && isAuthenticated && isStaff) {
           api.get('/dashboard/stats/')
             .then(res => setStats(res.data))
             .catch(err => console.error('Failed to fetch stats', err));
       }
-  }, [view, isAuthenticated, isStaff]);
+  }, [view, isAuthenticated, isStaff, loading]);
+
+  if (loading) {
+      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+  }
 
   const handleEditArticle = (id: number) => {
     setEditingArticleId(id);

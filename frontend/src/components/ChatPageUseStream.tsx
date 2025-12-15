@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChatSidebar from './Chat/ChatSidebar';
-import ChatWindow from './Chat/ChatWindow';
+import { ChatWindowUseStream } from './Chat/ChatWindowUseStream';
 import { useAuth } from '../context/AuthContext';
 
-const ChatPage: React.FC = () => {
+const ChatPageUseStream: React.FC = () => {
     const [selectedThreadId, setSelectedThreadId] = useState<string>('new');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const navigate = useNavigate();
@@ -17,17 +17,7 @@ const ChatPage: React.FC = () => {
     }, [navigate, isAuthenticated, loading]);
 
     if (loading) {
-        return (
-            <div style={{ 
-                paddingTop: 'var(--header-height)', 
-                height: '100vh', 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center' 
-            }}>
-                Loading...
-            </div>
-        );
+        return <div>Loading...</div>;
     }
 
     const handleSelectThread = (threadId: string) => {
@@ -59,9 +49,10 @@ const ChatPage: React.FC = () => {
                     refreshTrigger={refreshTrigger}
                 />
                 <div style={{ flex: 1, height: '100%', position: 'relative' }}>
-                    <ChatWindow 
+                    <ChatWindowUseStream 
+                        assistantId="intelligent_deep_assistant"
                         threadId={selectedThreadId} 
-                        onThreadCreated={handleThreadCreated}
+                        onThreadId={handleThreadCreated}
                     />
                 </div>
             </div>
@@ -69,4 +60,4 @@ const ChatPage: React.FC = () => {
     );
 };
 
-export default ChatPage;
+export default ChatPageUseStream;

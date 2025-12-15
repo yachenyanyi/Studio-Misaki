@@ -47,7 +47,7 @@ const Navbar: React.FC = () => {
           { icon: Home, label: 'Home', color: 'var(--accent)' },
           { icon: Book, label: 'Articles', color: 'var(--secondary)' },
           { icon: User, label: 'About', color: 'var(--primary)' }
-        ].map((item, index) => (
+        ].map((item) => (
           <motion.button
             key={item.label}
             whileHover={{ scale: 1.1, rotate: 3, y: -2 }}

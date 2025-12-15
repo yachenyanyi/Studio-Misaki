@@ -28,7 +28,7 @@ const UsersManager: React.FC = () => {
   const [pages, setPages] = useState(0);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [detail, setDetail] = useState<UserDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [, setDetailLoading] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);

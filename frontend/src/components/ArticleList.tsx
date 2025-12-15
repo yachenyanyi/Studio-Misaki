@@ -33,17 +33,7 @@ const ArticleList: React.FC = () => {
     fetchArticles();
   }, []);
 
-  const handleDelete = async (id: number, e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent link navigation
-    if (window.confirm('Are you sure you want to delete this article?')) {
-      try {
-        await api.delete(`/articles/${id}/`);
-        fetchArticles();
-      } catch (error) {
-        alert('Failed to delete article');
-      }
-    }
-  };
+
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading articles...</div>;

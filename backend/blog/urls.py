@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ArticleViewSet, LoginView, LogoutView, CheckAuthView, DashboardStatsView, ChatThreadViewSet, ChatThreadHistoryView, RegisterView, ChatConfigView, ChatGatewayView, ChatProxyThreadsView, ChatProxyRunsWaitView, ChatProxyRunsStreamView, ChatProxyHistoryView, AdminUsersListView, AdminUserDetailView
+from .views import ArticleViewSet, LoginView, LogoutView, CheckAuthView, DashboardStatsView, ChatThreadViewSet, ChatThreadHistoryView, RegisterView, ChatConfigView, ChatGatewayView, ChatProxyThreadsView, ChatProxyRunsWaitView, ChatProxyRunsStreamView, ChatProxyHistoryView, AdminUsersListView, AdminUserDetailView, ChatProxyThreadView, ChatProxyThreadStateView
 
 router = DefaultRouter()
 router.register(r'articles', ArticleViewSet)
@@ -21,6 +21,8 @@ urlpatterns = [
     path('chat/threads/<str:thread_id>/history/', ChatThreadHistoryView.as_view(), name='chat_thread_history'),
     # Proxy endpoints for Chainlit/LangGraph
     path('chatproxy/threads', ChatProxyThreadsView.as_view(), name='chatproxy_threads'),
+    path('chatproxy/threads/<str:thread_id>', ChatProxyThreadView.as_view(), name='chatproxy_thread'),
+    path('chatproxy/threads/<str:thread_id>/state', ChatProxyThreadStateView.as_view(), name='chatproxy_thread_state'),
     path('chatproxy/threads/<str:thread_id>/runs/wait', ChatProxyRunsWaitView.as_view(), name='chatproxy_runs_wait'),
     path('chatproxy/threads/<str:thread_id>/runs/stream', ChatProxyRunsStreamView.as_view(), name='chatproxy_runs_stream'),
     path('chatproxy/threads/<str:thread_id>/history', ChatProxyHistoryView.as_view(), name='chatproxy_history'),
