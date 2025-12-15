@@ -222,7 +222,7 @@ const ImageConverter: React.FC = () => {
             processedCount++;
             totalTime += (end - start);
             const avgTime = totalTime / processedCount;
-            const remaining = newFiles.length - (i + 1); // approximate
+
             // Count pending
             const pending = newFiles.filter((f, idx) => idx > i && f.status !== 'done').length;
             setEstimatedTime(pending * avgTime);

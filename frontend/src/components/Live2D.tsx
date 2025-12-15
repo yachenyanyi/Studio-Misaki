@@ -73,6 +73,15 @@ const Live2D: React.FC = () => {
 
     return () => {
       clearInterval(checkInterval);
+      // Clean up Live2D widget elements to prevent memory leaks and errors
+      const waifuElement = document.querySelector('.waifu');
+      if (waifuElement) {
+        waifuElement.remove();
+      }
+      const scriptElement = document.getElementById('live2d-widget-script');
+      if (scriptElement) {
+        scriptElement.remove();
+      }
     };
   }, []);
 

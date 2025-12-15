@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -10,6 +9,7 @@ import Live2D from './components/Live2D';
 import ArticleDetail from './components/ArticleDetail';
 import { AuthProvider } from './context/AuthContext';
 import AdminDashboard from './components/AdminDashboard';
+import Login from './components/Login';
 import Register from './components/Register';
 import ToolBar from './components/ToolBar';
 import JsonFormatter from './components/tools/JsonFormatter';
@@ -42,6 +42,7 @@ function App() {
                       </>
                   } />
                   <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/article/:id" element={<ArticleDetail />} />
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />

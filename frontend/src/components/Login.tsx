@@ -3,13 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const [identity, setIdentity] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from || '/';
+  const searchParams = new URLSearchParams(location.search);
+  const next = searchParams.get('next');
+  const from = next || (location.state as any)?.from || '/';
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -17,13 +19,17 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, from, navigate]);
 
+  if (loading) {
+      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>Checking auth...</div>;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const payload = identity.includes('@') ? { email: identity, password } : { username: identity, password };
       await login(payload);
       setError('');
-      navigate(from, { replace: true });
+      // Navigation is handled by useEffect when isAuthenticated becomes true
     } catch (err: any) {
       const msg = err?.response?.data?.detail || '登录失败，请检查用户名/邮箱和密码';
       setError(msg);

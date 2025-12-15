@@ -181,10 +181,7 @@ const EmojiMix: React.FC = () => {
     }
   };
 
-  const handleSwap = () => {
-    setEmoji1(emoji2);
-    setEmoji2(emoji1);
-  };
+
 
   return (
     <div style={{ paddingTop: 'calc(var(--header-height) + 2rem)', paddingBottom: '3rem', minHeight: '100vh', background: 'var(--bg-body)' }}>

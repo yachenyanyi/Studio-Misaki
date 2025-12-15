@@ -19,7 +19,8 @@ const Register: React.FC = () => {
       await register({ username, email, password });
       setSuccess('注册成功，即将跳转登录...');
       setTimeout(() => {
-        window.location.href = 'http://localhost:8001';
+        // Redirect to login, assuming the user will login there
+        navigate('/login');
       }, 1500);
     } catch (err: any) {
       const msg = err?.response?.data?.detail || '注册失败，请检查输入';
@@ -61,9 +62,12 @@ const Register: React.FC = () => {
             注册
           </button>
           <div style={{ textAlign: 'right' }}>
-            <a href="http://localhost:8001" style={{ color: 'var(--primary-color)' }}>
+            <span 
+              onClick={() => navigate('/login')} 
+              style={{ color: 'var(--primary-color)', cursor: 'pointer', textDecoration: 'underline' }}
+            >
               已有账号？去登录
-            </a>
+            </span>
           </div>
         </form>
       </div>

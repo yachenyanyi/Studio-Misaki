@@ -62,10 +62,14 @@ class LogoutView(views.APIView):
 class CheckAuthView(views.APIView):
     authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
     def get(self, request):
-        return Response({
+        data = {
             'is_authenticated': request.user.is_authenticated,
             'is_staff': request.user.is_staff
-        })
+        }
+        if request.user.is_authenticated:
+            data['username'] = request.user.username
+            data['email'] = request.user.email
+        return Response(data)
 
 class RegisterView(views.APIView):
     permission_classes = [permissions.AllowAny]
@@ -165,11 +169,65 @@ class ChatProxyRunsStreamView(views.APIView):
         except Exception as e:
             return Response({'detail': '流式运行失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
         def event_stream():
-            for line in r.iter_lines(decode_unicode=True):
-                if line:
-                    yield f'{line}\n'
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    yield chunk
         resp = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         return resp
+
+class ChatProxyThreadView(views.APIView):
+    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, thread_id):
+        if not _assert_thread_owner(request.user, thread_id):
+            return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
+        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        try:
+            resp = requests.get(f'{api_url}/threads/{thread_id}', headers=_service_headers(), timeout=10)
+            return Response(resp.json(), status=resp.status_code)
+        except Exception as e:
+            return Response({'detail': '获取线程信息失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            
+    def patch(self, request, thread_id):
+        if not _assert_thread_owner(request.user, thread_id):
+            return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
+        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        try:
+            resp = requests.patch(f'{api_url}/threads/{thread_id}', json=request.data, headers=_service_headers(), timeout=10)
+            return Response(resp.json(), status=resp.status_code)
+        except Exception as e:
+            return Response({'detail': '更新线程失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+class ChatProxyThreadStateView(views.APIView):
+    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, thread_id):
+        if not _assert_thread_owner(request.user, thread_id):
+            return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
+        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        try:
+            print(f"[ChatProxy] Getting state for thread {thread_id} from {api_url}")
+            resp = requests.get(f'{api_url}/threads/{thread_id}/state', headers=_service_headers(), timeout=10)
+            print(f"[ChatProxy] Response status: {resp.status_code}")
+            
+            content_type = resp.headers.get('Content-Type', '')
+            if 'application/json' in content_type:
+                return Response(resp.json(), status=resp.status_code)
+            else:
+                return Response(resp.text, status=resp.status_code)
+        except Exception as e:
+            print(f"[ChatProxy] Error: {e}")
+            return Response({'detail': '获取线程状态失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+    
+    def post(self, request, thread_id):
+        if not _assert_thread_owner(request.user, thread_id):
+            return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
+        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        try:
+            resp = requests.post(f'{api_url}/threads/{thread_id}/state', json=request.data, headers=_service_headers(), timeout=10)
+            return Response(resp.json(), status=resp.status_code)
+        except Exception as e:
+            return Response({'detail': '更新线程状态失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
 class ChatProxyHistoryView(views.APIView):
     authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
@@ -247,6 +305,7 @@ class AdminUserDetailView(views.APIView):
         return Response(UserDetailSerializer(u).data)
 class ChatThreadViewSet(viewsets.ModelViewSet):
     serializer_class = ChatThreadSerializer
+    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'thread_id'
     

@@ -62,7 +62,7 @@ const ToolBar: React.FC = () => {
         gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', 
         gap: '1.5rem' 
       }}>
-        {tools.map((tool, index) => (
+        {tools.map((tool) => (
           <motion.div
             key={tool.id}
             whileHover={{ y: -5, boxShadow: 'var(--shadow-md)' }}

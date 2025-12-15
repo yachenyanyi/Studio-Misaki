@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+
 
 const ColorPalette: React.FC = () => {
   const [colors, setColors] = useState(['#FF5733', '#33FF57', '#3357FF', '#F333FF']);
