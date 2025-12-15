@@ -1,0 +1,24 @@
+{
+    "models": [
+        "shizuku",
+        "wanko",
+        "Haru",
+        "Hiyori",
+        "Mao",
+        "Mark",
+        "Natori",
+        "Rice"
+
+    ],
+    "messages": [
+        "Shizuku",
+        "Wanko",
+        "Haru",
+        "Hiyori",
+        "Mao",
+        "Mark",
+        "Natori",
+        "Rice"
+
+    ]
+}

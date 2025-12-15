@@ -1,0 +1,43 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "@react-three/cannon": "^6.6.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
+    "@types/file-saver": "^2.0.7",
+    "@types/three": "^0.181.0",
+    "@uiw/react-md-editor": "^4.0.11",
+    "axios": "^1.13.2",
+    "emoji-mixer": "^1.2.2",
+    "emoji-picker-react": "^4.16.1",
+    "file-saver": "^2.0.5",
+    "framer-motion": "^12.23.25",
+    "jszip": "^3.10.1",
+    "live2d-widget-model-shizuku": "^1.0.5",
+    "live2d-widget-model-wanko": "^1.0.5",
+    "lucide-react": "^0.556.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-hot-toast": "^2.6.0",
+    "react-intersection-observer": "^10.0.0",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.10.1",
+    "rehype-raw": "^7.0.0",
+    "three": "^0.181.2"
+  }
+}

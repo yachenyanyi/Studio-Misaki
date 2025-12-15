@@ -1,0 +1,98 @@
+:root {
+    --primary: #6366f1;
+    --secondary: #8b5cf6;
+    --background: #f3f4f6;
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+}
+
+body {
+    background-color: var(--background) !important;
+}
+
+/* 隐藏默认的水印（如果允许） */
+header svg, .watermark {
+    opacity: 0.5;
+}
+
+/* User Message Bubble */
+.user-message .message-content {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    color: white !important;
+    border-radius: 18px 18px 4px 18px !important;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Assistant Message Bubble */
+.assistant-message .message-content {
+    background: white !important;
+    color: var(--text-primary) !important;
+    border-radius: 18px 18px 18px 4px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+    border: none !important;
+}
+
+/* Input Area */
+.MuiInputBase-root {
+    background-color: white !important;
+    border-radius: 28px !important;
+    border: 1px solid #e5e7eb !important;
+    padding: 6px 16px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+}
+
+/* Welcome Banner Styling */
+/* 利用 :has 选择器来改变包含 banner 的消息容器样式 */
+
+/* 针对包含 welcome-banner-content 的消息 */
+.step:has(.welcome-banner-content),
+.message-row:has(.welcome-banner-content) {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* 隐藏 Banner 消息的头像、名字和操作按钮 */
+.step:has(.welcome-banner-content) .avatar,
+.step:has(.welcome-banner-content) .message-header,
+.step:has(.welcome-banner-content) .actions,
+.message-row:has(.welcome-banner-content) .avatar,
+.message-row:has(.welcome-banner-content) .message-header {
+    display: none !important;
+}
+
+/* 移除 Banner 消息内容的气泡背景 */
+.step:has(.welcome-banner-content) .message-content,
+.message-row:has(.welcome-banner-content) .message-content {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Banner 自身样式 */
+.welcome-banner-content {
+    background: #eef2ff;
+    color: #6366f1;
+    padding: 16px 24px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 500;
+    border: 1px solid #e0e7ff;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.05);
+}
+
+.welcome-banner-content::before {
+    content: "📢";
+    margin-right: 8px;
+}

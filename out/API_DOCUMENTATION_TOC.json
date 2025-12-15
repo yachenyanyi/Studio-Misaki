@@ -1,0 +1,137 @@
+[
+  {
+    "type": "root",
+    "title": "LangSmith Deployment",
+    "line": 1
+  },
+  {
+    "type": "tag",
+    "title": "Assistants",
+    "anchor": "tag-assistants",
+    "line": 15,
+    "endpoints": [
+      { "title": "Create Assistant", "method": "POST", "path": "/assistants", "line": 18 },
+      { "title": "Search Assistants", "method": "POST", "path": "/assistants/search", "line": 39 },
+      { "title": "Count Assistants", "method": "POST", "path": "/assistants/count", "line": 58 },
+      { "title": "Get Assistant", "method": "GET", "path": "/assistants/{assistant_id}", "line": 75 },
+      { "title": "Delete Assistant", "method": "DELETE", "path": "/assistants/{assistant_id}", "line": 92 },
+      { "title": "Patch Assistant", "method": "PATCH", "path": "/assistants/{assistant_id}", "line": 113 },
+      { "title": "Get Assistant Graph", "method": "GET", "path": "/assistants/{assistant_id}/graph", "line": 135 },
+      { "title": "Get Assistant Subgraphs", "method": "GET", "path": "/assistants/{assistant_id}/subgraphs", "line": 155 },
+      { "title": "Get Assistant Subgraphs by Namespace", "method": "GET", "path": "/assistants/{assistant_id}/subgraphs/{namespace}", "line": 175 },
+      { "title": "Get Assistant Schemas", "method": "GET", "path": "/assistants/{assistant_id}/schemas", "line": 194 },
+      { "title": "Get Assistant Versions", "method": "POST", "path": "/assistants/{assistant_id}/versions", "line": 213 },
+      { "title": "Set Latest Assistant Version", "method": "POST", "path": "/assistants/{assistant_id}/latest", "line": 230 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "Threads",
+    "anchor": "tag-threads",
+    "line": 250,
+    "endpoints": [
+      { "title": "Create Thread", "method": "POST", "path": "/threads", "line": 253 },
+      { "title": "Search Threads", "method": "POST", "path": "/threads/search", "line": 270 },
+      { "title": "Count Threads", "method": "POST", "path": "/threads/count", "line": 287 },
+      { "title": "Get Thread State", "method": "GET", "path": "/threads/{thread_id}/state", "line": 304 },
+      { "title": "Update Thread State", "method": "POST", "path": "/threads/{thread_id}/state", "line": 324 },
+      { "title": "Get Thread State At Checkpoint", "method": "GET", "path": "/threads/{thread_id}/state/{checkpoint_id}", "line": 344 },
+      { "title": "Get Thread State At Checkpoint", "method": "POST", "path": "/threads/{thread_id}/state/checkpoint", "line": 363 },
+      { "title": "Get Thread History", "method": "GET", "path": "/threads/{thread_id}/history", "line": 384 },
+      { "title": "Get Thread History Post", "method": "POST", "path": "/threads/{thread_id}/history", "line": 403 },
+      { "title": "Copy Thread", "method": "POST", "path": "/threads/{thread_id}/copy", "line": 423 },
+      { "title": "Get Thread", "method": "GET", "path": "/threads/{thread_id}", "line": 442 },
+      { "title": "Delete Thread", "method": "DELETE", "path": "/threads/{thread_id}", "line": 461 },
+      { "title": "Patch Thread", "method": "PATCH", "path": "/threads/{thread_id}", "line": 480 },
+      { "title": "Join Thread Stream", "method": "GET", "path": "/threads/{thread_id}/stream", "line": 502 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "Thread Runs",
+    "anchor": "tag-thread-runs",
+    "line": 523,
+    "endpoints": [
+      { "title": "List Runs", "method": "GET", "path": "/threads/{thread_id}/runs", "line": 526 },
+      { "title": "Create Background Run", "method": "POST", "path": "/threads/{thread_id}/runs", "line": 549 },
+      { "title": "Create Run, Stream Output", "method": "POST", "path": "/threads/{thread_id}/runs/stream", "line": 573 },
+      { "title": "Create Run, Wait for Output", "method": "POST", "path": "/threads/{thread_id}/runs/wait", "line": 597 },
+      { "title": "Get Run", "method": "GET", "path": "/threads/{thread_id}/runs/{run_id}", "line": 621 },
+      { "title": "Delete Run", "method": "DELETE", "path": "/threads/{thread_id}/runs/{run_id}", "line": 641 },
+      { "title": "Join Run", "method": "GET", "path": "/threads/{thread_id}/runs/{run_id}/join", "line": 661 },
+      { "title": "Join Run Stream", "method": "GET", "path": "/threads/{thread_id}/runs/{run_id}/stream", "line": 682 },
+      { "title": "Cancel Run", "method": "POST", "path": "/threads/{thread_id}/runs/{run_id}/cancel", "line": 705 },
+      { "title": "Cancel Runs", "method": "POST", "path": "/runs/cancel", "line": 725 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "Stateless Runs",
+    "anchor": "tag-stateless-runs",
+    "line": 746,
+    "endpoints": [
+      { "title": "Create Run, Stream Output", "method": "POST", "path": "/runs/stream", "line": 749 },
+      { "title": "Create Run, Wait for Output", "method": "POST", "path": "/runs/wait", "line": 768 },
+      { "title": "Create Background Run", "method": "POST", "path": "/runs", "line": 787 },
+      { "title": "Create Run Batch", "method": "POST", "path": "/runs/batch", "line": 806 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "Crons (Plus tier)",
+    "anchor": "tag-crons-(plus-tier)",
+    "line": 825,
+    "endpoints": [
+      { "title": "Create Thread Cron", "method": "POST", "path": "/threads/{thread_id}/runs/crons", "line": 828 },
+      { "title": "Create Cron", "method": "POST", "path": "/runs/crons", "line": 850 },
+      { "title": "Search Crons", "method": "POST", "path": "/runs/crons/search", "line": 867 },
+      { "title": "Count Crons", "method": "POST", "path": "/runs/crons/count", "line": 882 },
+      { "title": "Delete Cron", "method": "DELETE", "path": "/runs/crons/{cron_id}", "line": 899 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "Store",
+    "anchor": "tag-store",
+    "line": 918,
+    "endpoints": [
+      { "title": "Store or update an item.", "method": "PUT", "path": "/store/items", "line": 921 },
+      { "title": "Delete an item.", "method": "DELETE", "path": "/store/items", "line": 933 },
+      { "title": "Retrieve a single item.", "method": "GET", "path": "/store/items", "line": 945 },
+      { "title": "Search for items within a namespace prefix.", "method": "POST", "path": "/store/items/search", "line": 963 },
+      { "title": "List namespaces with optional match conditions.", "method": "POST", "path": "/store/namespaces", "line": 976 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "A2A",
+    "anchor": "tag-a2a",
+    "line": 989,
+    "endpoints": [
+      { "title": "A2A Post", "method": "POST", "path": "/a2a/{assistant_id}", "line": 992 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "MCP",
+    "anchor": "tag-mcp",
+    "line": 1038,
+    "endpoints": [
+      { "title": "MCP Post", "method": "POST", "path": "/mcp/", "line": 1041 },
+      { "title": "MCP Get", "method": "GET", "path": "/mcp/", "line": 1071 },
+      { "title": "Terminate Session", "method": "DELETE", "path": "/mcp/", "line": 1080 }
+    ]
+  },
+  {
+    "type": "tag",
+    "title": "System",
+    "anchor": "tag-system",
+    "line": 1092,
+    "endpoints": [
+      { "title": "Server Information", "method": "GET", "path": "/info", "line": 1095 },
+      { "title": "System Metrics", "method": "GET", "path": "/metrics", "line": 1109 },
+      { "title": "Health Check", "method": "GET", "path": "/ok", "line": 1124 }
+    ]
+  }
+]
+
