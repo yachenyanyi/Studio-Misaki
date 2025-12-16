@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Article, SiteVisit, ChatThread
+from .models import Article, SiteVisit, ChatThread, TokenUsage
 
 class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,6 +16,11 @@ class ChatThreadSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatThread
         fields = ['id', 'thread_id', 'assistant_id', 'title', 'created_at', 'updated_at']
+
+class TokenUsageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TokenUsage
+        fields = ['id', 'thread_id', 'input_tokens', 'output_tokens', 'total_tokens', 'timestamp']
 
 class UserSummarySerializer(serializers.ModelSerializer):
     threads_count = serializers.IntegerField(read_only=True)

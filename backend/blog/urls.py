@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ArticleViewSet, LoginView, LogoutView, CheckAuthView, DashboardStatsView, ChatThreadViewSet, ChatThreadHistoryView, RegisterView, ChatConfigView, ChatGatewayView, ChatProxyThreadsView, ChatProxyRunsWaitView, ChatProxyRunsStreamView, ChatProxyHistoryView, AdminUsersListView, AdminUserDetailView, ChatProxyThreadView, ChatProxyThreadStateView
+from .views import ArticleViewSet, LoginView, LogoutView, CheckAuthView, DashboardStatsView, ChatThreadViewSet, ChatThreadHistoryView, RegisterView, ChatConfigView, ChatGatewayView, ChatProxyThreadsView, ChatProxyRunsWaitView, ChatProxyRunsStreamView, ChatProxyHistoryView, AdminUsersListView, AdminUserDetailView, ChatProxyThreadView, ChatProxyThreadStateView, AdminTokenStatsView, UserTokenUsageView, ChatAssistantsView
 
 router = DefaultRouter()
 router.register(r'articles', ArticleViewSet)
@@ -12,10 +12,13 @@ urlpatterns = [
     path('auth/check/', CheckAuthView.as_view(), name='check_auth'),
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('chat/config/', ChatConfigView.as_view(), name='chat_config'),
+    path('chat/assistants/', ChatAssistantsView.as_view(), name='chat_assistants'),
     path('chat/', ChatGatewayView.as_view(), name='chat_gateway'),
     path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard_stats'),
+    path('admin/token-stats/', AdminTokenStatsView.as_view(), name='admin_token_stats'),
     path('admin/users/', AdminUsersListView.as_view(), name='admin_users'),
     path('admin/users/<int:user_id>/', AdminUserDetailView.as_view(), name='admin_user_detail'),
+    path('token-usage/', UserTokenUsageView.as_view(), name='user_token_usage'),
     path('chat/threads/', ChatThreadViewSet.as_view({'get':'list', 'post':'create'}), name='chat_threads'),
     path('chat/threads/<str:thread_id>/', ChatThreadViewSet.as_view({'patch':'partial_update', 'delete':'destroy'}), name='chat_thread_detail'),
     path('chat/threads/<str:thread_id>/history/', ChatThreadHistoryView.as_view(), name='chat_thread_history'),

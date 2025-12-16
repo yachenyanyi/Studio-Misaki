@@ -38,3 +38,18 @@ class ChatThread(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.assistant_id} - {self.thread_id}"
+
+class TokenUsage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='token_usages')
+    thread_id = models.CharField(max_length=64, blank=True, null=True)
+    input_tokens = models.IntegerField(default=0)
+    output_tokens = models.IntegerField(default=0)
+    total_tokens = models.IntegerField(default=0)
+    model_name = models.CharField(max_length=128, blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.total_tokens} tokens - {self.timestamp}"

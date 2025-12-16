@@ -7,16 +7,43 @@ export interface ChatThread {
     updated_at: string;
 }
 
+export interface ChatAssistant {
+    assistant_id: string;
+    name?: string;
+    graph_id?: string;
+}
+
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
     content: string;
     id?: string;
+    usage_metadata?: any;
+    additional_kwargs?: any;
+    response_metadata?: any;
 }
 
 export const chatService = {
     getThreads: async (): Promise<ChatThread[]> => {
         const response = await api.get('/chat/threads/');
         return response.data;
+    },
+
+    getAssistants: async (): Promise<ChatAssistant[]> => {
+        const response = await api.get('/chat/assistants/');
+        const data = response.data;
+        let items: any[] = [];
+        if (Array.isArray(data)) {
+            items = data;
+        } else if (Array.isArray(data.assistants)) {
+            items = data.assistants;
+        } else if (Array.isArray(data.data)) {
+            items = data.data;
+        }
+        return items.map((a: any) => ({
+            assistant_id: a.assistant_id || a.id || a.assistantId,
+            name: a.name || a.metadata?.name || a.graph_id || a.graphId,
+            graph_id: a.graph_id || a.graphId
+        })).filter((a: ChatAssistant) => !!a.assistant_id);
     },
 
     createThread: async (assistantId: string, title?: string): Promise<ChatThread> => {
@@ -57,7 +84,10 @@ export const chatService = {
                     return {
                         role,
                         content: normalizeContent(msg.content),
-                        id: msg.id
+                        id: msg.id,
+                        usage_metadata: msg.usage_metadata,
+                        additional_kwargs: msg.additional_kwargs,
+                        response_metadata: msg.response_metadata
                     };
                 });
                 console.log(`[chatService] Mapped messages:`, mapped);
