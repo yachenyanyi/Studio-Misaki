@@ -10,7 +10,13 @@ from .authentication import generate_token, JWTAuthentication
 import datetime
 import os
 import requests
+import logging
 from django.contrib.auth.models import User
+from .utils import SSEUsageExtractor
+from .services import create_langgraph_thread, get_service_headers, ServiceUnavailable, get_langgraph_base_url, DEFAULT_TIMEOUT, LONG_TIMEOUT, THREAD_TIMEOUT, MAX_LIMIT
+from .mixins import BaseAuthenticatedView, BaseAdminView
+
+logger = logging.getLogger(__name__)
 from django.conf import settings
 from django.http import StreamingHttpResponse, HttpResponseRedirect
 from django.core.paginator import Paginator
@@ -100,18 +106,16 @@ class ChatConfigView(views.APIView):
             'iss': 'django'
         })
 
-class ChatAssistantsView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class ChatAssistantsView(BaseAuthenticatedView):
     def get(self, request):
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         try:
             payload = {
                 'metadata': {},
-                'limit': 50,
+                'limit': MAX_LIMIT,
                 'offset': 0
             }
-            resp = requests.post(f'{api_url}/assistants/search', json=payload, headers=_service_headers(), timeout=10)
+            resp = requests.post(f'{api_url}/assistants/search', json=payload, headers=get_service_headers(), timeout=DEFAULT_TIMEOUT)
             return Response(resp.json(), status=resp.status_code)
         except Exception as e:
             return Response({'detail': '获取助手列表失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
@@ -125,15 +129,6 @@ class ChatGatewayView(views.APIView):
         next_url = request.GET.get('next') or '/chat'
         return HttpResponseRedirect(f'/login?next={next_url}')
 
-def _service_headers():
-    token = getattr(settings, 'SERVICE_TOKEN_SECRET', '')
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-    }
-    return headers
-
 def _assert_thread_owner(user, thread_id):
     try:
         ChatThread.objects.get(user=user, thread_id=thread_id)
@@ -141,129 +136,80 @@ def _assert_thread_owner(user, thread_id):
     except ChatThread.DoesNotExist:
         return False
 
-class ChatProxyThreadsView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class ChatProxyThreadsView(BaseAuthenticatedView):
     def post(self, request):
         assistant_id = request.data.get('assistant_id') or 'intelligent_deep_assistant'
         title = request.data.get('title')
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        
         try:
-            resp = requests.post(f'{api_url}/threads', json={'metadata': {'assistant_id': assistant_id}}, headers=_service_headers(), timeout=15)
-            data = resp.json()
-            thread_id = data.get('thread_id') or data.get('id')
-            if not thread_id:
-                return Response({'detail': '无法创建线程', 'error': data}, status=status.HTTP_502_BAD_GATEWAY)
+            thread_id = create_langgraph_thread(assistant_id)
+        except ServiceUnavailable as e:
+            return Response({'detail': e.detail}, status=status.HTTP_502_BAD_GATEWAY)
         except Exception as e:
             return Response({'detail': '后端线程服务不可用', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            
         obj = ChatThread.objects.create(user=request.user, thread_id=thread_id, assistant_id=assistant_id, title=title)
         return Response(ChatThreadSerializer(obj).data, status=status.HTTP_201_CREATED)
 
-class ChatProxyRunsWaitView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class ChatProxyRunsWaitView(BaseAuthenticatedView):
     def post(self, request, thread_id):
         if not _assert_thread_owner(request.user, thread_id):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         payload = request.data
         try:
-            resp = requests.post(f'{api_url}/threads/{thread_id}/runs/wait', json=payload, headers=_service_headers(), timeout=60)
+            resp = requests.post(f'{api_url}/threads/{thread_id}/runs/wait', json=payload, headers=get_service_headers(), timeout=LONG_TIMEOUT)
             return Response(resp.json(), status=resp.status_code)
         except Exception as e:
             return Response({'detail': '运行失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
-class ChatProxyRunsStreamView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+
+class ChatProxyRunsStreamView(BaseAuthenticatedView):
     def post(self, request, thread_id):
         if not _assert_thread_owner(request.user, thread_id):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         payload = request.data
         try:
-            r = requests.post(f'{api_url}/threads/{thread_id}/runs/stream', json=payload, headers={'Authorization': _service_headers()['Authorization'], 'Accept': 'text/event-stream', 'Content-Type': 'application/json'}, stream=True, timeout=60)
+            r = requests.post(f'{api_url}/threads/{thread_id}/runs/stream', json=payload, headers={'Authorization': get_service_headers()['Authorization'], 'Accept': 'text/event-stream', 'Content-Type': 'application/json'}, stream=True, timeout=LONG_TIMEOUT)
         except Exception as e:
             return Response({'detail': '流式运行失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
         
         def event_stream():
-            full_content = b""
+            extractor = SSEUsageExtractor()
+            
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     yield chunk
                     try:
-                        full_content += chunk
+                        extractor.process_chunk(chunk)
                     except Exception:
                         pass
             
             # Post-processing: Extract usage_metadata from the full stream content
             try:
-                # Decode the full content
-                text = full_content.decode('utf-8', errors='ignore')
-                
-                # We need to find the last occurrence of usage_metadata
-                # Since parsing the whole SSE stream manually is tedious, 
-                # and usage_metadata is a distinctive JSON key, we can use a regex or string search.
-                # However, it's safer to try to parse the lines that look like data.
-                
-                last_usage = None
-                
-                # Split by double newlines to get events
-                events = text.split('\n\n')
-                for event in events:
-                    lines = event.split('\n')
-                    for line in lines:
-                        if line.startswith('data:'):
-                            try:
-                                data_str = line[5:].strip()
-                                # Quick check before JSON parse
-                                if 'usage_metadata' in data_str:
-                                    data = json.loads(data_str)
-                                    
-                                    # Helper to find usage_metadata in arbitrary JSON structure
-                                    def find_usage(obj):
-                                        if isinstance(obj, dict):
-                                            if 'usage_metadata' in obj and obj['usage_metadata']:
-                                                return obj['usage_metadata']
-                                            for k, v in obj.items():
-                                                res = find_usage(v)
-                                                if res: return res
-                                        elif isinstance(obj, list):
-                                            for item in obj:
-                                                res = find_usage(item)
-                                                if res: return res
-                                        return None
-                                    
-                                    usage = find_usage(data)
-                                    if usage:
-                                        last_usage = usage
-                            except:
-                                pass
-                
-                if last_usage:
+                if extractor.last_usage:
                     TokenUsage.objects.create(
                         user=request.user,
                         thread_id=thread_id,
-                        input_tokens=last_usage.get('input_tokens', 0),
-                        output_tokens=last_usage.get('output_tokens', 0),
-                        total_tokens=last_usage.get('total_tokens', 0),
+                        input_tokens=extractor.last_usage.get('input_tokens', 0),
+                        output_tokens=extractor.last_usage.get('output_tokens', 0),
+                        total_tokens=extractor.last_usage.get('total_tokens', 0),
                         model_name=payload.get('assistant_id', 'unknown')
                     )
             except Exception as e:
-                print(f"[ChatProxy] Error saving token usage: {e}")
+                logger.error(f"[ChatProxy] Error saving token usage: {e}")
 
         resp = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         return resp
 
-class ChatProxyThreadView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class ChatProxyThreadView(BaseAuthenticatedView):
     def get(self, request, thread_id):
         if not _assert_thread_owner(request.user, thread_id):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         try:
-            resp = requests.get(f'{api_url}/threads/{thread_id}', headers=_service_headers(), timeout=10)
+            resp = requests.get(f'{api_url}/threads/{thread_id}', headers=get_service_headers(), timeout=DEFAULT_TIMEOUT)
             return Response(resp.json(), status=resp.status_code)
         except Exception as e:
             return Response({'detail': '获取线程信息失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
@@ -271,24 +217,22 @@ class ChatProxyThreadView(views.APIView):
     def patch(self, request, thread_id):
         if not _assert_thread_owner(request.user, thread_id):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         try:
-            resp = requests.patch(f'{api_url}/threads/{thread_id}', json=request.data, headers=_service_headers(), timeout=10)
+            resp = requests.patch(f'{api_url}/threads/{thread_id}', json=request.data, headers=get_service_headers(), timeout=DEFAULT_TIMEOUT)
             return Response(resp.json(), status=resp.status_code)
         except Exception as e:
             return Response({'detail': '更新线程失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
-class ChatProxyThreadStateView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class ChatProxyThreadStateView(BaseAuthenticatedView):
     def get(self, request, thread_id):
         if not _assert_thread_owner(request.user, thread_id):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         try:
-            print(f"[ChatProxy] Getting state for thread {thread_id} from {api_url}")
-            resp = requests.get(f'{api_url}/threads/{thread_id}/state', headers=_service_headers(), timeout=10)
-            print(f"[ChatProxy] Response status: {resp.status_code}")
+            logger.info(f"[ChatProxy] Getting state for thread {thread_id} from {api_url}")
+            resp = requests.get(f'{api_url}/threads/{thread_id}/state', headers=get_service_headers(), timeout=DEFAULT_TIMEOUT)
+            logger.info(f"[ChatProxy] Response status: {resp.status_code}")
             
             content_type = resp.headers.get('Content-Type', '')
             if 'application/json' in content_type:
@@ -296,35 +240,32 @@ class ChatProxyThreadStateView(views.APIView):
             else:
                 return Response(resp.text, status=resp.status_code)
         except Exception as e:
-            print(f"[ChatProxy] Error: {e}")
+            logger.error(f"[ChatProxy] Error: {e}")
             return Response({'detail': '获取线程状态失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
     
     def post(self, request, thread_id):
         if not _assert_thread_owner(request.user, thread_id):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         try:
-            resp = requests.post(f'{api_url}/threads/{thread_id}/state', json=request.data, headers=_service_headers(), timeout=10)
+            resp = requests.post(f'{api_url}/threads/{thread_id}/state', json=request.data, headers=get_service_headers(), timeout=DEFAULT_TIMEOUT)
             return Response(resp.json(), status=resp.status_code)
         except Exception as e:
             return Response({'detail': '更新线程状态失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
-class ChatProxyHistoryView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class ChatProxyHistoryView(BaseAuthenticatedView):
     def get(self, request, thread_id):
         if not _assert_thread_owner(request.user, thread_id):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
-        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        api_url = get_langgraph_base_url()
         try:
-            resp = requests.get(f'{api_url}/threads/{thread_id}/history', headers=_service_headers(), timeout=15)
+            resp = requests.get(f'{api_url}/threads/{thread_id}/history', headers=get_service_headers(), timeout=THREAD_TIMEOUT)
             return Response(resp.json(), status=resp.status_code)
         except Exception as e:
             return Response({'detail': '获取历史失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
 
-class DashboardStatsView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAdminUser]
+
+class DashboardStatsView(BaseAdminView):
 
     def get(self, request):
         # Total visits
@@ -348,9 +289,7 @@ class DashboardStatsView(views.APIView):
             'daily_visits': list(daily_visits)
         })
 
-class AdminTokenStatsView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAdminUser]
+class AdminTokenStatsView(BaseAdminView):
 
     def get(self, request):
         # Global stats
@@ -376,9 +315,7 @@ class AdminTokenStatsView(views.APIView):
             'daily_usage': list(daily_usage)
         })
 
-class UserTokenUsageView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
+class UserTokenUsageView(BaseAuthenticatedView):
 
     def get(self, request):
         user_id = request.GET.get('user_id')
@@ -409,9 +346,7 @@ class UserTokenUsageView(views.APIView):
             'history': history_data
         })
 
-class AdminUsersListView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAdminUser]
+class AdminUsersListView(BaseAdminView):
     def get(self, request):
         q = (request.GET.get('q') or '').strip()
         is_staff = request.GET.get('is_staff')
@@ -435,9 +370,7 @@ class AdminUsersListView(views.APIView):
             'pages': paginator.num_pages,
         })
 
-class AdminUserDetailView(views.APIView):
-    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
-    permission_classes = [permissions.IsAdminUser]
+class AdminUserDetailView(BaseAdminView):
     def get(self, request, user_id):
         try:
             u = User.objects.get(pk=user_id)
@@ -456,16 +389,14 @@ class ChatThreadViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         assistant_id = request.data.get('assistant_id') or 'intelligent_deep_assistant'
         title = request.data.get('title')
-        # 调用 LangGraph 创建线程
-        api_url = os.getenv('LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        
         try:
-            resp = requests.post(f'{api_url}/threads', json={'metadata': {'assistant_id': assistant_id}}, timeout=10)
-            data = resp.json()
-            thread_id = data.get('thread_id') or data.get('id')
-            if not thread_id:
-                return Response({'detail': '无法创建线程', 'error': data}, status=status.HTTP_502_BAD_GATEWAY)
+            thread_id = create_langgraph_thread(assistant_id)
+        except ServiceUnavailable as e:
+            return Response({'detail': e.detail}, status=status.HTTP_502_BAD_GATEWAY)
         except Exception as e:
             return Response({'detail': '后端线程服务不可用', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            
         obj = ChatThread.objects.create(user=request.user, thread_id=thread_id, assistant_id=assistant_id, title=title)
         return Response(ChatThreadSerializer(obj).data, status=status.HTTP_201_CREATED)
     

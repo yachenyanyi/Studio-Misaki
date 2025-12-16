@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ChatRoom from './components/ChatRoom';
-import ChatPage from './components/ChatPageUseStream';
+import ChatPage from './components/ChatPage';
 import ArticleList from './components/ArticleList';
 import Footer from './components/Footer';
 import Live2D from './components/Live2D';

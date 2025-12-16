@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ChatSidebar from './Chat/ChatSidebar';
 import ChatWindow from './Chat/ChatWindow';
 import { useAuth } from '../context/AuthContext';
+import { DEFAULT_ASSISTANT_ID } from '../constants';
 
 const ChatPage: React.FC = () => {
     const [selectedThreadId, setSelectedThreadId] = useState<string>('new');
@@ -60,8 +61,9 @@ const ChatPage: React.FC = () => {
                 />
                 <div style={{ flex: 1, height: '100%', position: 'relative' }}>
                     <ChatWindow 
+                        assistantId={DEFAULT_ASSISTANT_ID}
                         threadId={selectedThreadId} 
-                        onThreadCreated={handleThreadCreated}
+                        onThreadId={handleThreadCreated}
                     />
                 </div>
             </div>
