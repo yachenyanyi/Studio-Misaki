@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminLogin from './AdminLogin';
 import { useAuth } from '../context/AuthContext';
+import { buildDjangoStaticUrl } from '../api';
 
 const Header: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -49,7 +50,7 @@ const Header: React.FC = () => {
             style={{ cursor: 'pointer' }}
             title={isAuthenticated ? (isStaff ? "管理后台" : "点击退出") : "点击登录"}
         >
-            <img src="/static/images/avatar.jpg" alt="Avatar" />
+            <img src={buildDjangoStaticUrl('images/avatar.jpg')} alt="Avatar" />
         </div>
         
         {/* Render AdminLogin but control its visibility via prop or keep it hidden until triggered */}

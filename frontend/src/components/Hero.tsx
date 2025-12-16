@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
+import { buildDjangoStaticUrl } from '../api';
 
 const Hero: React.FC = () => {
   const [heroImage] = useState(() => {
     // Images are located in backend/static/gallary/
     // Django serves them at /static/gallary/
-    // Vite proxies /static to Django
+    // Frontend loads them from backend static host
     const images = [
       '137970187_p0.jpg',
       '91067691_p0.jpg',
       '125633249_p0.jpg'
     ];
     const randomImage = images[Math.floor(Math.random() * images.length)];
-    return `url('/static/gallary/${randomImage}')`;
+    const src = buildDjangoStaticUrl(`gallary/${randomImage}`);
+    return `url('${src}')`;
   });
 
   return (

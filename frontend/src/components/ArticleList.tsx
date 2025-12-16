@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api';
+import api, { buildDjangoStaticUrl, resolveBackendPath } from '../api';
 import { useAuth } from '../context/AuthContext';
 import AddArticleModal from './AddArticleModal';
 
@@ -17,6 +17,7 @@ const ArticleList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { isStaff } = useAuth();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fallbackCover = buildDjangoStaticUrl('gallary/125633249_p0.jpg');
 
   const fetchArticles = async () => {
     try {
@@ -72,10 +73,10 @@ const ArticleList: React.FC = () => {
                 <div className="feature-image">
                     <Link to={`/article/${article.id}`}>
                         <img 
-                          src={article.cover_image || '/static/gallary/125633249_p0.jpg'} 
+                          src={article.cover_image ? resolveBackendPath(article.cover_image) : fallbackCover} 
                           alt={article.title} 
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/static/gallary/125633249_p0.jpg';
+                            (e.target as HTMLImageElement).src = fallbackCover;
                           }}
                         />
                     </Link>
