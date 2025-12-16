@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from .models import ChatThread
+from unittest.mock import patch
 
 class AuthTests(TestCase):
     def setUp(self):
@@ -22,11 +23,10 @@ class AuthTests(TestCase):
         
         # 2. Use token to access protected view
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
-        # Assuming check_auth uses IsAuthenticated or we can check another view
-        # check_auth uses request.user.is_authenticated
-        # But check_auth view doesn't explicitly use JWTAuthentication in previous code?
-        # Let's check check_auth view in views.py
-        pass
+        resp = self.client.get(reverse('check_auth'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json().get('is_authenticated'))
+        self.assertEqual(resp.json().get('username'), 'alice')
     
     def test_login_email_success(self):
         resp = self.client.post(reverse('login'), {'email':'alice@example.com', 'password':'pass1234'}, format='json')
@@ -56,10 +56,20 @@ class ThreadTests(TestCase):
         resp = self.client.get(reverse('chat_threads'))
         self.assertIn(resp.status_code, (401, 403))
     
-    def test_create_thread(self):
-        self.client.post(reverse('login'), {'username':'bob', 'password':'pass1234'}, format='json')
-        # Mock external call by temporarily disabling requests? Here we just assert 502 or 201 depending on env
+    @patch('blog.views.create_langgraph_thread')
+    def test_create_thread(self, mock_create):
+        mock_create.return_value = 'mock-thread-id-123'
+        
+        # Login first
+        resp = self.client.post(reverse('login'), {'username':'bob', 'password':'pass1234'}, format='json')
+        token = resp.json().get('token')
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
+
         resp = self.client.post(reverse('chat_threads'), {'assistant_id':'role_playing_agent', 'title':'对话一'}, format='json')
-        self.assertIn(resp.status_code, (201, 502))
+        
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.json()['thread_id'], 'mock-thread-id-123')
+        self.assertTrue(ChatThread.objects.filter(thread_id='mock-thread-id-123').exists())
+
 
 # Create your tests here.

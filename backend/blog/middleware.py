@@ -46,4 +46,4 @@ class VisitMiddleware:
                 cache.set(cache_key, True, 1800)
             except Exception as e:
                 # Silently fail to not disrupt the user experience
-                print(f"Error recording visit: {e}")
+                logger.error(f"Error recording visit: {e}")
