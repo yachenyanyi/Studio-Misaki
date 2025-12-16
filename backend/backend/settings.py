@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-r$$=t9lm+yu%h4%^-c@xp3l=$aak^b*vk%s0j4@ue=a270f_&p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -57,7 +57,16 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = ['http://localhost:5173']
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://frp-cup.com',
+    'https://frp-cup.com',
+    'http://frp-cup.com:46483',
+    'https://frp-cup.com:46483',
+    'http://frp-cup.com:23287',
+    'https://frp-cup.com:23287'
+]
+CORS_ORIGIN_ALLOW_ALL = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = False
 

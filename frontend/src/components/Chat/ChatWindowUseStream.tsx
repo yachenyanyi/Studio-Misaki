@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStream } from '@langchain/langgraph-sdk/react';
 import { Send, Loader2, StopCircle, MessageSquare } from 'lucide-react';
 import { chatService, type ChatAssistant } from '../../services/chatService';
+import { API_BASE_URL } from '../../api';
 import MessageBubble from './MessageBubble';
 import type { ChatMessage } from '../../services/chatService';
 
@@ -17,7 +18,7 @@ export const ChatWindowUseStream: React.FC<Props> = ({ assistantId, threadId, on
     const [assistants, setAssistants] = useState<ChatAssistant[]>([]);
     const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>(assistantId);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
-    const apiUrl = `${window.location.origin}/api/chatproxy`;
+    const apiUrl = `${API_BASE_URL}/chatproxy`;
     const token = localStorage.getItem('auth_token');
     const isNew = !threadId || threadId === 'new';
 
