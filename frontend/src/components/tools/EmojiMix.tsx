@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import EmojiPicker, { type EmojiClickData } from 'emoji-picker-react';
 import { motion } from 'framer-motion';
 import { saveAs } from 'file-saver';
-import getEmojiMixUrl from 'emoji-mixer';
 
 // Define mixing styles
 const MIX_STYLES = [
@@ -68,6 +67,7 @@ const EmojiMix: React.FC = () => {
         // If user selected a specific blend mode, they might want that specific effect.
         // But Google Mixes are unique art, not just blends.
         // Let's assume if Google Mix exists, it's better than any canvas blend.
+        const { default: getEmojiMixUrl } = await import('emoji-mixer');
         const url = getEmojiMixUrl(emoji1.emoji, emoji2.emoji);
         if (url) {
             setGoogleMixUrl(url);
