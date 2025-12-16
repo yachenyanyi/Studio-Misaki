@@ -17,10 +17,24 @@ interface SiteVisit {
     timestamp: string;
 }
 
+interface TokenStats {
+    global_stats: {
+        total: number;
+        input: number;
+        output: number;
+    };
+    daily_usage: {
+        date: string;
+        total_tokens: number;
+        count: number;
+    }[];
+}
+
 interface DashboardStats {
     total_visits: number;
     recent_visits: SiteVisit[];
     daily_visits: { date: string; count: number }[];
+    token_stats?: TokenStats;
 }
 
 const AdminDashboard: React.FC = () => {
@@ -44,9 +58,17 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
       if (view === 'dashboard' && !loading && isAuthenticated && isStaff) {
-          api.get('/dashboard/stats/')
-            .then(res => setStats(res.data))
-            .catch(err => console.error('Failed to fetch stats', err));
+          Promise.all([
+            api.get('/dashboard/stats/'),
+            api.get('/admin/token-stats/')
+          ])
+          .then(([res1, res2]) => {
+              setStats({
+                  ...res1.data,
+                  token_stats: res2.data
+              });
+          })
+          .catch(err => console.error('Failed to fetch stats', err));
       }
   }, [view, isAuthenticated, isStaff, loading]);
 
@@ -235,6 +257,54 @@ const AdminDashboard: React.FC = () => {
                                     {!stats?.recent_visits.length && (
                                         <tr>
                                             <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-sub)' }}>No visits recorded yet.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {/* Token Usage Section */}
+                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', marginTop: '2rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Global Token Usage</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
+                                <div style={{ color: 'var(--text-sub)', fontSize: '0.9rem' }}>Total Tokens</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#3b82f6' }}>{stats?.token_stats?.global_stats.total || 0}</div>
+                            </div>
+                            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
+                                <div style={{ color: 'var(--text-sub)', fontSize: '0.9rem' }}>Input Tokens</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#10b981' }}>{stats?.token_stats?.global_stats.input || 0}</div>
+                            </div>
+                            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
+                                <div style={{ color: 'var(--text-sub)', fontSize: '0.9rem' }}>Output Tokens</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#f59e0b' }}>{stats?.token_stats?.global_stats.output || 0}</div>
+                            </div>
+                        </div>
+
+                        <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Daily Usage (Last 7 Days)</h4>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #f1f5f9' }}>
+                                        <th style={{ padding: '1rem', color: 'var(--text-sub)', fontSize: '0.9rem' }}>Date</th>
+                                        <th style={{ padding: '1rem', color: 'var(--text-sub)', fontSize: '0.9rem' }}>Total Tokens</th>
+                                        <th style={{ padding: '1rem', color: 'var(--text-sub)', fontSize: '0.9rem' }}>Requests</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {stats?.token_stats?.daily_usage.map((day, idx) => (
+                                        <tr key={idx} style={{ borderBottom: '1px solid #f8fafc' }}>
+                                            <td style={{ padding: '1rem', color: 'var(--text-sub)' }}>
+                                                {new Date(day.date).toLocaleDateString()}
+                                            </td>
+                                            <td style={{ padding: '1rem', fontWeight: 500 }}>{day.total_tokens}</td>
+                                            <td style={{ padding: '1rem' }}>{day.count}</td>
+                                        </tr>
+                                    ))}
+                                    {!stats?.token_stats?.daily_usage.length && (
+                                        <tr>
+                                            <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-sub)' }}>No token usage recorded yet.</td>
                                         </tr>
                                     )}
                                 </tbody>

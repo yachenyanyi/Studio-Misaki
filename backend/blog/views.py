@@ -1,10 +1,11 @@
 from rest_framework import viewsets, permissions, status, views, authentication
 from rest_framework.response import Response
 from django.contrib.auth import login, logout, authenticate
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
-from .models import Article, SiteVisit, ChatThread
-from .serializers import ArticleSerializer, SiteVisitSerializer, ChatThreadSerializer, UserSummarySerializer, UserDetailSerializer
+from .models import Article, SiteVisit, ChatThread, TokenUsage
+from .serializers import ArticleSerializer, SiteVisitSerializer, ChatThreadSerializer, UserSummarySerializer, UserDetailSerializer, TokenUsageSerializer
+import json
 from .authentication import generate_token, JWTAuthentication
 import datetime
 import os
@@ -99,6 +100,22 @@ class ChatConfigView(views.APIView):
             'iss': 'django'
         })
 
+class ChatAssistantsView(views.APIView):
+    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        api_url = getattr(settings, 'LANGGRAPH_API_URL', 'http://127.0.0.1:2024')
+        try:
+            payload = {
+                'metadata': {},
+                'limit': 50,
+                'offset': 0
+            }
+            resp = requests.post(f'{api_url}/assistants/search', json=payload, headers=_service_headers(), timeout=10)
+            return Response(resp.json(), status=resp.status_code)
+        except Exception as e:
+            return Response({'detail': '获取助手列表失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
 class ChatGatewayView(views.APIView):
     permission_classes = [permissions.AllowAny]
     def get(self, request):
@@ -168,10 +185,73 @@ class ChatProxyRunsStreamView(views.APIView):
             r = requests.post(f'{api_url}/threads/{thread_id}/runs/stream', json=payload, headers={'Authorization': _service_headers()['Authorization'], 'Accept': 'text/event-stream', 'Content-Type': 'application/json'}, stream=True, timeout=60)
         except Exception as e:
             return Response({'detail': '流式运行失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+        
         def event_stream():
+            full_content = b""
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     yield chunk
+                    try:
+                        full_content += chunk
+                    except Exception:
+                        pass
+            
+            # Post-processing: Extract usage_metadata from the full stream content
+            try:
+                # Decode the full content
+                text = full_content.decode('utf-8', errors='ignore')
+                
+                # We need to find the last occurrence of usage_metadata
+                # Since parsing the whole SSE stream manually is tedious, 
+                # and usage_metadata is a distinctive JSON key, we can use a regex or string search.
+                # However, it's safer to try to parse the lines that look like data.
+                
+                last_usage = None
+                
+                # Split by double newlines to get events
+                events = text.split('\n\n')
+                for event in events:
+                    lines = event.split('\n')
+                    for line in lines:
+                        if line.startswith('data:'):
+                            try:
+                                data_str = line[5:].strip()
+                                # Quick check before JSON parse
+                                if 'usage_metadata' in data_str:
+                                    data = json.loads(data_str)
+                                    
+                                    # Helper to find usage_metadata in arbitrary JSON structure
+                                    def find_usage(obj):
+                                        if isinstance(obj, dict):
+                                            if 'usage_metadata' in obj and obj['usage_metadata']:
+                                                return obj['usage_metadata']
+                                            for k, v in obj.items():
+                                                res = find_usage(v)
+                                                if res: return res
+                                        elif isinstance(obj, list):
+                                            for item in obj:
+                                                res = find_usage(item)
+                                                if res: return res
+                                        return None
+                                    
+                                    usage = find_usage(data)
+                                    if usage:
+                                        last_usage = usage
+                            except:
+                                pass
+                
+                if last_usage:
+                    TokenUsage.objects.create(
+                        user=request.user,
+                        thread_id=thread_id,
+                        input_tokens=last_usage.get('input_tokens', 0),
+                        output_tokens=last_usage.get('output_tokens', 0),
+                        total_tokens=last_usage.get('total_tokens', 0),
+                        model_name=payload.get('assistant_id', 'unknown')
+                    )
+            except Exception as e:
+                print(f"[ChatProxy] Error saving token usage: {e}")
+
         resp = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         return resp
 
@@ -266,6 +346,67 @@ class DashboardStatsView(views.APIView):
             'total_visits': total_visits,
             'recent_visits': recent_visits_data,
             'daily_visits': list(daily_visits)
+        })
+
+class AdminTokenStatsView(views.APIView):
+    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        # Global stats
+        total_tokens = TokenUsage.objects.aggregate(
+            total=Sum('total_tokens'),
+            input=Sum('input_tokens'),
+            output=Sum('output_tokens')
+        )
+        
+        # Daily stats (last 7 days)
+        last_7_days = datetime.datetime.now() - datetime.timedelta(days=7)
+        daily_usage = TokenUsage.objects.filter(timestamp__gte=last_7_days)\
+            .annotate(date=TruncDate('timestamp'))\
+            .values('date')\
+            .annotate(
+                total_tokens=Sum('total_tokens'),
+                count=Count('id')
+            )\
+            .order_by('date')
+            
+        return Response({
+            'global_stats': total_tokens,
+            'daily_usage': list(daily_usage)
+        })
+
+class UserTokenUsageView(views.APIView):
+    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user_id = request.GET.get('user_id')
+        
+        # If user_id is provided and request user is admin, show that user's stats
+        if user_id and request.user.is_staff:
+             target_user = User.objects.filter(id=user_id).first()
+             if not target_user:
+                 return Response({'detail': 'User not found'}, status=404)
+             qs = TokenUsage.objects.filter(user=target_user)
+        else:
+             # Otherwise show current user's stats
+             qs = TokenUsage.objects.filter(user=request.user)
+             
+        # Aggregate totals
+        totals = qs.aggregate(
+            total=Sum('total_tokens'),
+            input=Sum('input_tokens'),
+            output=Sum('output_tokens')
+        )
+        
+        # Recent usage history
+        history = qs.order_by('-timestamp')[:20]
+        history_data = TokenUsageSerializer(history, many=True).data
+        
+        return Response({
+            'totals': totals,
+            'history': history_data
         })
 
 class AdminUsersListView(views.APIView):
