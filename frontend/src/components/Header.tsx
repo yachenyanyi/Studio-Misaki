@@ -30,8 +30,8 @@ const Header: React.FC = () => {
   return (
     <header className="site-header">
         <div className="site-branding">
-            <h1 className="site-title"><Link to="/">Sakura AI</Link></h1>
-            <p className="site-description">樱花树下的 AI 伙伴</p>
+            <h1 className="site-title"><Link to="/">Studio-Misaki</Link></h1>
+            <p className="site-description">Studio-Misaki · Your AI Studio</p>
         </div>
         <nav className="site-navigation">
             <ul>
