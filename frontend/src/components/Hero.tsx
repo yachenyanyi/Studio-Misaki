@@ -3,9 +3,6 @@ import { buildDjangoStaticUrl } from '../api';
 
 const Hero: React.FC = () => {
   const [heroImage] = useState(() => {
-    // Images are located in backend/static/gallary/
-    // Django serves them at /static/gallary/
-    // Frontend loads them from backend static host
     const images = [
       '137970187_p0.jpg',
       '91067691_p0.jpg',
