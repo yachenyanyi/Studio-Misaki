@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import api from '../api';
+import api, { buildDjangoStaticUrl, resolveBackendPath } from '../api';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 
@@ -39,9 +39,10 @@ const ArticleDetail: React.FC = () => {
     return <div style={{ textAlign: 'center', padding: '5rem' }}>Article not found</div>;
   }
 
-  const bgImage = article.cover_image 
-    ? `url('${article.cover_image}')` 
-    : `url('/static/gallary/125633249_p0.jpg')`;
+  const fallbackCover = buildDjangoStaticUrl('gallary/125633249_p0.jpg');
+  const bgImage = article.cover_image
+    ? `url('${resolveBackendPath(article.cover_image)}')`
+    : `url('${fallbackCover}')`;
 
   return (
     <>

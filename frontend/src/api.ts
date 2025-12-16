@@ -1,8 +1,17 @@
 import axios from 'axios';
 
-// 优先使用环境变量配置的 API 地址，如果没有则回退到 localhost
-// 企业级最佳实践：永远不要在代码中硬编码生产环境地址
 const API_BASE_URL = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+
+const normalizeBase = (base: string) => base.replace(/\/+$/, '');
+const normalizePath = (path: string) => (path.startsWith('/') ? path : `/${path}`);
+
+const apiUrl = new URL(API_BASE_URL, window.location.origin);
+const BACKEND_ORIGIN = import.meta.env.VITE_BACKEND_ORIGIN || apiUrl.origin;
+const DJANGO_STATIC_PREFIX = '/static';
+const DJANGO_MEDIA_PREFIX = '/media';
+
+const STATIC_BASE_URL = normalizeBase(import.meta.env.VITE_STATIC_BASE || window.location.origin);
+const MEDIA_BASE_URL = normalizeBase(import.meta.env.VITE_MEDIA_BASE || BACKEND_ORIGIN);
 
 console.log(`[API Config] Using API Base: ${API_BASE_URL} (Mode: ${import.meta.env.MODE})`);
 
@@ -14,7 +23,26 @@ const api = axios.create({
 });
 
 // 导出这个 URL 供其他组件使用（如 ChatWindowUseStream）
-export { API_BASE_URL };
+export { 
+  API_BASE_URL,
+  BACKEND_ORIGIN,
+  STATIC_BASE_URL,
+  MEDIA_BASE_URL,
+  DJANGO_STATIC_PREFIX,
+  DJANGO_MEDIA_PREFIX,
+};
+
+export const resolveBackendPath = (pathOrUrl: string) => {
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  if (pathOrUrl.startsWith(DJANGO_STATIC_PREFIX + '/')) return `${STATIC_BASE_URL}${pathOrUrl}`;
+  if (pathOrUrl.startsWith(DJANGO_MEDIA_PREFIX + '/')) return `${MEDIA_BASE_URL}${pathOrUrl}`;
+  if (pathOrUrl.startsWith('/')) return `${normalizeBase(BACKEND_ORIGIN)}${pathOrUrl}`;
+  return pathOrUrl;
+};
+
+export const buildDjangoStaticUrl = (relativePath: string) => {
+  return `${STATIC_BASE_URL}${DJANGO_STATIC_PREFIX}${normalizePath(relativePath)}`;
+};
 
 // CSRF Token handling for Django
 api.interceptors.request.use((config) => {
