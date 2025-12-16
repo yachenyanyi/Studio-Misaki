@@ -34,7 +34,7 @@ function App() {
                           <Hero />
                           <div id="content" className="site-content">
                               <div className="notice">
-                                  <i className="fa fa-bullhorn"></i> 欢迎来到 Sakura AI 聊天室，这里是一个安静的角落。
+                                  <i className="fa fa-bullhorn"></i> 欢迎来到 Studio-Misaki 聊天室，这里是一个安静的角落。
                               </div>
                               <ChatRoom />
                               <ArticleList />

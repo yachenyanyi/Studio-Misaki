@@ -55,7 +55,7 @@ const ChainlitDialog: React.FC = () => {
           gap: '0.5rem'
         }}>
           <MessageCircle size={20} />
-          <span>Sakura AI Chat Room</span>
+          <span>Studio-Misaki Chat Room</span>
         </div>
         <div style={{ width: '60px' }} /> {/* Spacer for balance */}
       </div>

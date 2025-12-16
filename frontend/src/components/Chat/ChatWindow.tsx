@@ -237,7 +237,7 @@ const ChatWindow: React.FC<Props> = ({ threadId, onThreadCreated }) => {
                         }}>
                             <MessageSquare size={40} color="var(--primary-color)" />
                         </div>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Welcome to Sakura AI</h3>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Welcome to Studio-Misaki</h3>
                         <p style={{ margin: 0 }}>Select an agent above to start chatting</p>
                     </div>
                 )}

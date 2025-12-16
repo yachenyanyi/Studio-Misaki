@@ -188,7 +188,7 @@ export const ChatWindowUseStream: React.FC<Props> = ({ assistantId, threadId, on
                         </div>
                         <div>
                             <div style={{ fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6b7280' }}>
-                                Sakura AI
+                                Studio-Misaki
                             </div>
                             <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
                                 {isNew ? '开始新的对话' : '正在对话'}
@@ -298,7 +298,7 @@ export const ChatWindowUseStream: React.FC<Props> = ({ assistantId, threadId, on
                                     opacity: 0.85
                                 }}
                             >
-                                选择一个助手，输入你的问题，Sakura AI 会以 Markdown 形式为你生成优雅的回复。
+                                选择一个助手，输入你的问题，Studio-Misaki 会以 Markdown 形式为你生成优雅的回复。
                             </div>
                         </div>
                     )}
@@ -386,7 +386,7 @@ export const ChatWindowUseStream: React.FC<Props> = ({ assistantId, threadId, on
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="和 Sakura AI 聊点什么吧…"
+                            placeholder="和 Studio-Misaki 聊点什么吧…"
                             style={{
                                 flex: 1,
                                 border: 'none',
