@@ -1,4 +1,4 @@
-import api from '../api';
+import api, { API_BASE_URL } from '../api';
 
 export interface ChatThread {
     thread_id: string;
@@ -122,13 +122,11 @@ export const chatService = {
             // Use Client from @langchain/langgraph-sdk
             // Dynamic import to avoid SSR issues if any, though Client is isomorphic
             const { Client } = await import("@langchain/langgraph-sdk");
-            
-            // Construct the client pointing to our Django proxy
-            // The Django proxy exposes /chatproxy which forwards to LangGraph
-            // LangGraph SDK expects base URL. It appends /threads/...
-            // Our proxy is at /api/chatproxy. So full path to threads is /api/chatproxy/threads
+
+            const chatProxyBase = `${API_BASE_URL.replace(/\/+$/, '')}/chatproxy`;
+
             const client = new Client({
-                apiUrl: `${window.location.origin}/api/chatproxy`,
+                apiUrl: chatProxyBase,
                 // We need to pass the token. The SDK might not support Authorization header directly in constructor easily
                 // for all transports without a custom fetch.
                 // However, Client uses fetch. We can try to override fetch or headers.
