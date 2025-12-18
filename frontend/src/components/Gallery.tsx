@@ -333,35 +333,46 @@ const ChapterItem: React.FC<{
         {item.subTitle.split(' ')[0]}
       </div>
 
-      {/* 图片区域 */}
       <div style={{ 
         flex: 1, 
         height: '60vh',
         position: 'relative',
         zIndex: 1,
         margin: '0 2rem',
-        maxWidth: '800px'
+        maxWidth: '800px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
-        <div style={{
-          position: 'absolute',
-          top: 0, left: 0, width: '100%', height: '100%',
+        <motion.div style={{
+          position: 'relative',
+          maxHeight: '100%',
+          maxWidth: '100%',
           overflow: 'hidden',
           border: isActive ? `1px solid ${item.color}` : '1px solid rgba(255,255,255,0.1)',
           transition: 'all 0.5s ease',
-          boxShadow: isActive ? `0 0 50px ${item.color}30` : 'none'
+          boxShadow: isActive ? `0 0 50px ${item.color}30` : 'none',
+          background: 'rgba(0,0,0,0.2)',
+          display: 'flex' // 确保容器紧贴图片
         }}>
           {/* 暗色遮罩 */}
           <div style={{
             position: 'absolute', inset: 0, background: '#000', zIndex: 2, 
             opacity: isActive ? 0 : 0.4,
-            transition: 'opacity 0.5s'
+            transition: 'opacity 0.5s',
+            pointerEvents: 'none'
           }} />
           
           <motion.img 
             src={item.src} 
             alt={item.title}
             style={{ 
-              width: '100%', height: '100%', objectFit: 'cover', 
+              display: 'block',
+              maxHeight: '60vh', // 限制高度
+              maxWidth: '100%',   // 限制宽度
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
               filter: isActive ? 'grayscale(0%) contrast(1.1)' : 'grayscale(100%) contrast(1.2)', 
               transition: 'filter 0.5s ease' 
             }}
@@ -403,7 +414,7 @@ const ChapterItem: React.FC<{
               </>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </div>
 
       {/* 文字区域 */}
