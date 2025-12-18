@@ -55,6 +55,11 @@ export const chatService = {
         await api.delete(`/chat/threads/${threadId}/`);
     },
 
+    getThread: async (threadId: string): Promise<ChatThread> => {
+        const response = await api.get(`/chat/threads/${threadId}/`);
+        return response.data;
+    },
+    
     getThreadState: async (threadId: string) => {
         try {
             console.log(`[chatService] Fetching state for thread: ${threadId}`);

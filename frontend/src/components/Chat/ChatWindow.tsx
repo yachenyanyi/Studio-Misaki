@@ -20,24 +20,47 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
     const [assistants, setAssistants] = useState<ChatAssistant[]>([]);
     const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>(assistantId);
     
+    // Sync selectedAssistantId with prop when prop changes
+    useEffect(() => {
+        if (assistantId && !selectedAssistantId) {
+            setSelectedAssistantId(assistantId);
+        }
+    }, [assistantId]);
+    
     const apiUrl = `${API_BASE_URL}${API_ENDPOINTS.CHAT_PROXY}`;
     const token = localStorage.getItem('auth_token');
     const isNew = !threadId || threadId === 'new';
 
     useEffect(() => {
-        const fetchHistory = async () => {
+        const fetchHistoryAndMetadata = async () => {
             if (threadId && threadId !== 'new') {
                 try {
-                    const msgs = await chatService.getThreadState(threadId);
+                    // Fetch both history and thread metadata in parallel
+                    const [msgs, threadInfo] = await Promise.all([
+                        chatService.getThreadState(threadId),
+                        chatService.getThread(threadId)
+                    ]);
                     setHistoryMessages(msgs);
+                    if (threadInfo && threadInfo.assistant_id) {
+                        setSelectedAssistantId(threadInfo.assistant_id);
+                    }
                 } catch (e) {
                     console.error(MESSAGES.ERROR_LOAD_HISTORY, e);
+                    // Fallback to just history if metadata fails
+                    try {
+                        const msgs = await chatService.getThreadState(threadId);
+                        setHistoryMessages(msgs);
+                    } catch (innerE) {
+                        console.error("Critical error loading thread:", innerE);
+                    }
                 }
             } else {
                 setHistoryMessages([]);
+                // For new threads, we can either keep the current selection or reset to default
+                // Let's keep the current selection as it allows the user to pick before starting
             }
         };
-        fetchHistory();
+        fetchHistoryAndMetadata();
     }, [threadId]);
 
     useEffect(() => {
@@ -45,8 +68,14 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
             try {
                 const list = await chatService.getAssistants();
                 setAssistants(list);
-                if (!selectedAssistantId && list.length > 0) {
-                    setSelectedAssistantId(list[0].assistant_id);
+                
+                // If the current selected ID is not in the list and we have assistants,
+                // and it's a new thread, we might want to default to the first one.
+                if (isNew && list.length > 0) {
+                    const isCurrentValid = list.some(a => a.assistant_id === selectedAssistantId);
+                    if (!isCurrentValid) {
+                        setSelectedAssistantId(list[0].assistant_id);
+                    }
                 }
             } catch (e) {
                 console.error(MESSAGES.ERROR_LOAD_ASSISTANTS, e);
