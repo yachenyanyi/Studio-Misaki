@@ -8,6 +8,7 @@ import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { ErrorMessage } from '../ui/ErrorMessage';
 import { API_ENDPOINTS, MESSAGES } from '../../constants';
+import { useAuth } from '../../context/AuthContext';
 
 interface Props {
     assistantId: string;
@@ -16,9 +17,13 @@ interface Props {
 }
 
 const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
+    const { user } = useAuth();
     const [historyMessages, setHistoryMessages] = useState<any[]>([]);
     const [assistants, setAssistants] = useState<ChatAssistant[]>([]);
     const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>(assistantId);
+    const [isRollingBack, setIsRollingBack] = useState(false);
+    const [rollbackKey, setRollbackKey] = useState(0);
+    const [pendingInput, setPendingInput] = useState('');
     
     // Sync selectedAssistantId with prop when prop changes
     useEffect(() => {
@@ -36,10 +41,11 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
             if (threadId && threadId !== 'new') {
                 try {
                     // Fetch both history and thread metadata in parallel
-                    const [msgs, threadInfo] = await Promise.all([
+                    const [state, threadInfo] = await Promise.all([
                         chatService.getThreadState(threadId),
                         chatService.getThread(threadId)
                     ]);
+                    const msgs = chatService.getMessagesFromState(state);
                     setHistoryMessages(msgs);
                     if (threadInfo && threadInfo.assistant_id) {
                         setSelectedAssistantId(threadInfo.assistant_id);
@@ -48,7 +54,8 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
                     console.error(MESSAGES.ERROR_LOAD_HISTORY, e);
                     // Fallback to just history if metadata fails
                     try {
-                        const msgs = await chatService.getThreadState(threadId);
+                        const state = await chatService.getThreadState(threadId);
+                        const msgs = chatService.getMessagesFromState(state);
                         setHistoryMessages(msgs);
                     } catch (innerE) {
                         console.error("Critical error loading thread:", innerE);
@@ -61,7 +68,7 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
             }
         };
         fetchHistoryAndMetadata();
-    }, [threadId]);
+    }, [threadId, rollbackKey]);
 
     useEffect(() => {
         const loadAssistants = async () => {
@@ -84,30 +91,72 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
         loadAssistants();
     }, []);
 
-    const effectiveAssistantId = selectedAssistantId || assistantId;
-
-    const { messages, values, submit, isLoading, stop, error, getMessagesMetadata } = useStream({
-        apiUrl,
-        assistantId: effectiveAssistantId,
-        threadId: threadId === 'new' ? undefined : threadId,
-        onThreadId,
-        defaultHeaders: {
-             'Authorization': token ? `Bearer ${token}` : ''
-        },
-        onError: (e) => {
-            console.error(MESSAGES.ERROR_STREAM, e);
-        }
-    });
-
-    const handleSend = async (msg: string) => {
+    const handleRollback = async () => {
+        if (!threadId || threadId === 'new' || isRollingBack) return;
+        
         try {
-            await submit({ messages: [{ role: 'user', content: msg }] }, { streamMode: ["messages"] });
+            setIsRollingBack(true);
+            // Get more history to find the turn boundary
+            const history = await chatService.getThreadHistory(threadId, 20);
+            
+            if (history && history.length > 1) {
+                const currentMessages = history[0].values?.messages || [];
+                if (currentMessages.length === 0) return;
+
+                // Find the last human message index
+                let lastHumanIdx = -1;
+                let lastHumanContent = '';
+                for (let i = currentMessages.length - 1; i >= 0; i--) {
+                    const m = currentMessages[i];
+                    if (m.type === 'human' || m.role === 'user') {
+                        lastHumanIdx = i;
+                        lastHumanContent = typeof m.content === 'string' ? m.content : 
+                                           (Array.isArray(m.content) ? m.content.map((c: any) => c.text || '').join('') : '');
+                        break;
+                    }
+                }
+
+                if (lastHumanIdx !== -1) {
+                    // Rollback to the state BEFORE this human message
+                    // This state should have exactly lastHumanIdx messages
+                    const targetState = history.find((s: any) => {
+                        const msgs = s.values?.messages || [];
+                        return msgs.length === lastHumanIdx;
+                    });
+
+                    if (targetState && targetState.checkpoint_id) {
+                        console.log("Rolling back to turn boundary:", targetState.checkpoint_id, "Msg count:", lastHumanIdx);
+                        await chatService.rollbackThread(threadId, targetState.checkpoint_id);
+                        
+                        // Set the revoked message back to input
+                        setPendingInput(lastHumanContent);
+                        
+                        const newState = await chatService.getThreadState(threadId);
+                        const newMsgs = chatService.getMessagesFromState(newState);
+                        setHistoryMessages(newMsgs);
+                        setRollbackKey(prev => prev + 1);
+                        return;
+                    }
+                }
+
+                // Fallback: just rollback one message if turn detection fails
+                const currentMsgCount = currentMessages.length;
+                const fallbackState = history.find((s: any) => (s.values?.messages?.length || 0) < currentMsgCount);
+                if (fallbackState) {
+                    await chatService.rollbackThread(threadId, fallbackState.checkpoint_id);
+                    const newState = await chatService.getThreadState(threadId);
+                    setHistoryMessages(chatService.getMessagesFromState(newState));
+                    setRollbackKey(prev => prev + 1);
+                }
+             }
         } catch (e) {
-            console.error(MESSAGES.ERROR_SUBMIT, e);
+            console.error("Rollback failed:", e);
+        } finally {
+            setIsRollingBack(false);
         }
     };
 
-    const renderMessages = normalizeMessages(values, historyMessages, messages || [], getMessagesMetadata);
+    const effectiveAssistantId = selectedAssistantId || assistantId;
 
     return (
         <div style={{
@@ -123,6 +172,80 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
                 isNew={isNew}
             />
             
+            <ChatStreamWrapper
+                key={`${threadId}-${rollbackKey}`}
+                apiUrl={apiUrl}
+                assistantId={effectiveAssistantId}
+                threadId={threadId}
+                token={token}
+                user={user}
+                historyMessages={historyMessages}
+                onThreadId={onThreadId}
+                onRollback={handleRollback}
+                isRollingBack={isRollingBack}
+                isNew={isNew}
+                initialInput={pendingInput}
+                onInputUsed={() => setPendingInput('')}
+            />
+        </div>
+    );
+};
+
+interface StreamWrapperProps {
+    apiUrl: string;
+    assistantId: string;
+    threadId?: string;
+    token: string | null;
+    user: any;
+    historyMessages: any[];
+    onThreadId?: (id: string) => void;
+    onRollback: () => void;
+    isRollingBack: boolean;
+    isNew: boolean;
+    initialInput?: string;
+    onInputUsed?: () => void;
+}
+
+const ChatStreamWrapper: React.FC<StreamWrapperProps> = ({
+    apiUrl, assistantId, threadId, token, user, historyMessages, onThreadId, onRollback, isRollingBack, isNew,
+    initialInput, onInputUsed
+}) => {
+    const { messages, values, submit, isLoading, stop, error, getMessagesMetadata } = useStream({
+        apiUrl,
+        assistantId,
+        threadId: threadId === 'new' ? undefined : threadId,
+        onThreadId,
+        defaultHeaders: {
+             'Authorization': token ? `Bearer ${token}` : ''
+        },
+        onError: (e) => {
+            console.error(MESSAGES.ERROR_STREAM, e);
+        }
+    });
+
+    const handleSend = async (msg: string) => {
+        try {
+            await submit(
+                { messages: [{ role: 'user', content: msg }] }, 
+                { 
+                    streamMode: ["messages"],
+                    config: {
+                        configurable: {
+                            user_id: user?.username || '',
+                            thread_id: threadId === 'new' ? undefined : threadId
+                        }
+                    }
+                }
+            );
+        } catch (e) {
+            console.error(MESSAGES.ERROR_SUBMIT, e);
+        }
+    };
+
+    const renderMessages = normalizeMessages(values, historyMessages, messages || [], getMessagesMetadata);
+
+    return (
+        <>
             <MessageList 
                 messages={renderMessages} 
                 isLoading={isLoading} 
@@ -134,10 +257,15 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
             <ChatInput 
                 onSend={handleSend} 
                 onStop={stop} 
+                onRollback={onRollback}
                 isLoading={isLoading} 
+                isRollingBack={isRollingBack}
+                showRollback={!!threadId && threadId !== 'new' && renderMessages.length > 0}
+                initialValue={initialInput}
             />
-        </div>
+        </>
     );
 };
+
 
 export default ChatWindow;
