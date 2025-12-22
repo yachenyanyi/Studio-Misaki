@@ -15,10 +15,11 @@ export const normalizeMessages = (
 
     const renderMessages: { msg: ChatMessage; usage?: any }[] = [];
     allMessages.forEach((m: any, idx: number) => {
-        let role: 'user' | 'assistant' | 'system' = 'user';
+        let role: 'user' | 'assistant' | 'system' | 'tool' = 'user';
         if (m.type === 'ai' || m.role === 'assistant') role = 'assistant';
         else if (m.type === 'human' || m.role === 'user') role = 'user';
         else if (m.type === 'system' || m.role === 'system') role = 'system';
+        else if (m.type === 'tool' || m.role === 'tool') role = 'tool';
 
         let content = '';
         if (typeof m.content === 'string') content = m.content;
@@ -40,7 +41,12 @@ export const normalizeMessages = (
                       m.response_metadata?.token_usage;
 
         renderMessages.push({
-            msg: { role, content, id: m.id },
+            msg: { 
+                role, 
+                content, 
+                id: m.id,
+                tool_calls: m.tool_calls || m.additional_kwargs?.tool_calls
+            },
             usage
         });
     });

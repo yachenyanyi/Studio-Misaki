@@ -259,7 +259,12 @@ class ChatProxyHistoryView(BaseAuthenticatedView):
             return Response({'detail': '无权访问该线程'}, status=status.HTTP_403_FORBIDDEN)
         api_url = get_langgraph_base_url()
         try:
-            resp = requests.get(f'{api_url}/threads/{thread_id}/history', headers=get_service_headers(), timeout=THREAD_TIMEOUT)
+            resp = requests.get(
+                f'{api_url}/threads/{thread_id}/history', 
+                params=request.GET,
+                headers=get_service_headers(), 
+                timeout=THREAD_TIMEOUT
+            )
             return Response(resp.json(), status=resp.status_code)
         except Exception as e:
             return Response({'detail': '获取历史失败', 'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)

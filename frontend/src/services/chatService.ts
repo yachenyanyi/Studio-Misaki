@@ -14,12 +14,13 @@ export interface ChatAssistant {
 }
 
 export interface ChatMessage {
-    role: 'user' | 'assistant' | 'system';
+    role: 'user' | 'assistant' | 'system' | 'tool';
     content: string;
     id?: string;
     usage_metadata?: any;
     additional_kwargs?: any;
     response_metadata?: any;
+    tool_calls?: any[];
 }
 
 export const chatService = {
@@ -60,55 +61,85 @@ export const chatService = {
         return response.data;
     },
     
-    getThreadState: async (threadId: string) => {
+    getThreadState: async (thread_id: string) => {
         try {
-            console.log(`[chatService] Fetching state for thread: ${threadId}`);
-            const response = await api.get(`/chatproxy/threads/${threadId}/state`);
-            console.log(`[chatService] Raw response for ${threadId}:`, response.data);
-            
-            const values = response.data.values;
-            if (values && values.messages) {
-                const normalizeContent = (c: any): string => {
-                    if (typeof c === 'string') return c;
-                    if (Array.isArray(c)) {
-                        return c.map((item: any) => {
-                            if (typeof item === 'string') return item;
-                            if (item?.text) return item.text;
-                            return '';
-                        }).join('');
-                    }
-                    return '';
-                };
-
-                const mapped = values.messages.map((msg: any) => {
-                    let role: 'user' | 'assistant' | 'system' = 'user';
-                    if (msg.type === 'human' || msg.role === 'user') role = 'user';
-                    else if (msg.type === 'ai' || msg.role === 'assistant') role = 'assistant';
-                    else if (msg.type === 'system' || msg.role === 'system') role = 'system';
-                    
-                    return {
-                        role,
-                        content: normalizeContent(msg.content),
-                        id: msg.id,
-                        usage_metadata: msg.usage_metadata,
-                        additional_kwargs: msg.additional_kwargs,
-                        response_metadata: msg.response_metadata
-                    };
-                });
-                console.log(`[chatService] Mapped messages:`, mapped);
-                return mapped;
-            }
-            console.log(`[chatService] No messages found in values`);
-            return [];
+            console.log(`[chatService] Fetching state for thread: ${thread_id}`);
+            const response = await api.get(`/chatproxy/threads/${thread_id}/state`);
+            return response.data;
         } catch (e) {
             console.error(`[chatService] Error fetching thread state:`, e);
             throw e;
         }
     },
 
+    getThreadHistory: async (thread_id: string, limit: number = 20) => {
+        try {
+            const response = await api.get(`/chatproxy/threads/${thread_id}/history`, {
+                params: { limit }
+            });
+            return response.data; // Array of states, each with checkpoint_id and values
+        } catch (e) {
+            console.error(`[chatService] Error fetching thread history:`, e);
+            throw e;
+        }
+    },
+
+    rollbackThread: async (thread_id: string, checkpoint_id: string) => {
+        try {
+            // Revert thread state to a specific checkpoint
+            // The LangGraph API expects a ThreadStateUpdate object which includes a checkpoint config
+            const response = await api.post(`/chatproxy/threads/${thread_id}/state`, {
+                checkpoint: {
+                    checkpoint_id: checkpoint_id
+                }
+            });
+            return response.data;
+        } catch (e) {
+            console.error(`[chatService] Error rolling back thread:`, e);
+            throw e;
+        }
+    },
+    
+    getMessagesFromState: (state: any) => {
+        const values = state.values;
+        if (values && values.messages) {
+            const normalizeContent = (c: any): string => {
+                if (typeof c === 'string') return c;
+                if (Array.isArray(c)) {
+                    return c.map((item: any) => {
+                        if (typeof item === 'string') return item;
+                        if (item?.text) return item.text;
+                        return '';
+                    }).join('');
+                }
+                return '';
+            };
+
+            return values.messages.map((msg: any) => {
+                let role: 'user' | 'assistant' | 'system' | 'tool' = 'user';
+                if (msg.type === 'human' || msg.role === 'user') role = 'user';
+                else if (msg.type === 'ai' || msg.role === 'assistant') role = 'assistant';
+                else if (msg.type === 'system' || msg.role === 'system') role = 'system';
+                else if (msg.type === 'tool' || msg.role === 'tool') role = 'tool';
+                
+                return {
+                    role,
+                    content: normalizeContent(msg.content),
+                    id: msg.id,
+                    usage_metadata: msg.usage_metadata,
+                    additional_kwargs: msg.additional_kwargs,
+                    response_metadata: msg.response_metadata,
+                    tool_calls: msg.tool_calls || msg.additional_kwargs?.tool_calls
+                };
+            });
+        }
+        return [];
+    },
+
     getHistory: async (threadId: string): Promise<ChatMessage[]> => {
-        // Use getThreadState to retrieve the current message history from the thread state
-        return chatService.getThreadState(threadId);
+        // Use getThreadState and getMessagesFromState to retrieve messages
+        const state = await chatService.getThreadState(threadId);
+        return chatService.getMessagesFromState(state);
     },
 
     sendMessageStream: async (
