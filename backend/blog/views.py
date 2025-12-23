@@ -34,9 +34,15 @@ class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.all().order_by('-created_at')
     serializer_class = ArticleSerializer
     permission_classes = [IsAdminOrReadOnly]
+    authentication_classes = [JWTAuthentication, authentication.SessionAuthentication]
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(views.APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = [] # Disable session auth for login to avoid CSRF
 
     def post(self, request):
         username_or_email = request.data.get('username') or request.data.get('email')
@@ -78,8 +84,10 @@ class CheckAuthView(views.APIView):
             data['email'] = request.user.email
         return Response(data)
 
+@method_decorator(csrf_exempt, name='dispatch')
 class RegisterView(views.APIView):
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []
     def post(self, request):
         username = (request.data.get('username') or '').strip()
         email = (request.data.get('email') or '').strip().lower()
