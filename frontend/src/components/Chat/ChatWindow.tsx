@@ -173,7 +173,7 @@ const ChatWindow: React.FC<Props> = ({ assistantId, threadId, onThreadId }) => {
             />
             
             <ChatStreamWrapper
-                key={`${threadId}-${rollbackKey}`}
+                key={`${threadId}-${effectiveAssistantId}-${rollbackKey}`}
                 apiUrl={apiUrl}
                 assistantId={effectiveAssistantId}
                 threadId={threadId}

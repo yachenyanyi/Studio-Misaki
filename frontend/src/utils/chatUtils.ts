@@ -7,14 +7,34 @@ export const normalizeMessages = (
     getMessagesMetadata?: (m: any, idx: number) => any
 ): { msg: ChatMessage; usage?: any }[] => {
     let allMessages: any[] = [];
-    if (values && values.messages && Array.isArray(values.messages) && values.messages.length > 0) {
+    const hasStream = messages && messages.length > 0;
+
+    if (hasStream) {
+        // During streaming, combine history (from DB) with new stream messages
+        allMessages = [...historyMessages, ...messages];
+    } else if (values && values.messages && Array.isArray(values.messages) && values.messages.length > 0) {
+        // If we have values.messages (standard LangGraph state), use it as the source of truth
         allMessages = values.messages;
     } else {
-        allMessages = [...historyMessages, ...(messages || [])];
+        // Fallback to historyMessages
+        allMessages = historyMessages;
+    }
+
+    // Aggressive deduplication by ID to prevent "double sections"
+    const seenIds = new Set();
+    const uniqueMessages: any[] = [];
+    
+    for (const m of allMessages) {
+        // LangGraph messages usually have an 'id'. If not, use role + content hash as a fallback.
+        const mId = m.id || `${m.role || m.type}-${typeof m.content === 'string' ? m.content.substring(0, 50) : JSON.stringify(m.content).substring(0, 50)}`;
+        if (!seenIds.has(mId)) {
+            uniqueMessages.push(m);
+            seenIds.add(mId);
+        }
     }
 
     const renderMessages: { msg: ChatMessage; usage?: any }[] = [];
-    allMessages.forEach((m: any, idx: number) => {
+    uniqueMessages.forEach((m: any, idx: number) => {
         let role: 'user' | 'assistant' | 'system' | 'tool' = 'user';
         if (m.type === 'ai' || m.role === 'assistant') role = 'assistant';
         else if (m.type === 'human' || m.role === 'user') role = 'user';
