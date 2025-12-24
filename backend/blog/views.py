@@ -186,7 +186,8 @@ class ChatProxyRunsStreamView(BaseAuthenticatedView):
         def event_stream():
             extractor = SSEUsageExtractor()
             
-            for chunk in r.iter_content(chunk_size=1024):
+            # Use a smaller chunk size or iter_lines to avoid buffering in the proxy
+            for chunk in r.iter_content(chunk_size=None): # chunk_size=None means it will yield whatever is received
                 if chunk:
                     yield chunk
                     try:
