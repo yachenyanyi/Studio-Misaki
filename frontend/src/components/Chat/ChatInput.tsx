@@ -23,6 +23,8 @@ export const ChatInput: React.FC<Props> = ({
 }) => {
     const [input, setInput] = useState('');
 
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
     // 当初始值改变时同步到输入框
     React.useEffect(() => {
         if (initialValue) {
@@ -30,10 +32,21 @@ export const ChatInput: React.FC<Props> = ({
         }
     }, [initialValue]);
 
+    // 自动调整高度
+    React.useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+        }
+    }, [input]);
+
     const handleSend = () => {
         if (!input.trim() || isLoading) return;
         onSend(input);
         setInput('');
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -99,10 +112,11 @@ export const ChatInput: React.FC<Props> = ({
                     </button>
                 )}
                 <textarea
+                    ref={textareaRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="输入消息..."
+                    placeholder="问点什么吧... (Shift + Enter 换行)"
                     disabled={isLoading}
                     style={{
                         flex: 1,
@@ -112,12 +126,12 @@ export const ChatInput: React.FC<Props> = ({
                         padding: '0.75rem 1rem',
                         fontSize: '0.95rem',
                         lineHeight: 1.5,
-                        maxHeight: '150px',
+                        maxHeight: '200px',
                         outline: 'none',
                         color: UI_COLORS.TEXT_PRIMARY,
-                        minHeight: '24px'
+                        minHeight: '24px',
+                        overflowY: 'auto'
                     }}
-                    rows={1}
                 />
                 <button
                     onClick={isLoading ? onStop : handleSend}
