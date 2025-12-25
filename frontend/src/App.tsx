@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ChatRoom from './components/ChatRoom';
@@ -23,46 +23,61 @@ const EmojiMix = lazy(() => import('./components/tools/EmojiMix'));
 const Gallery = lazy(() => import('./components/Gallery'));
 const GamePage = lazy(() => import('./components/Game/GamePage'));
 
+function AppContent() {
+  const location = useLocation();
+  const isChatPage = location.pathname === '/chat';
+
+  return (
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: isChatPage ? '100vh' : 'auto',
+      minHeight: '100vh',
+      overflow: isChatPage ? 'hidden' : 'visible'
+    }}>
+      <Header />
+      <main style={{ flex: 1, position: 'relative' }}>
+        <Suspense fallback={null}>
+          <Routes>
+              <Route path="/" element={
+                  <>
+                      <Hero />
+                      <div id="content" className="site-content">
+                          <div className="notice">
+                              <i className="fa fa-bullhorn"></i> 欢迎来到 Studio-Misaki 聊天室，这里是一个安静的角落。
+                          </div>
+                          <ChatRoom />
+                          <ArticleList />
+                      </div>
+                  </>
+              } />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/article/:id" element={<ArticleDetail />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/tools" element={<ToolBar />} />
+              <Route path="/tools/json-formatter" element={<JsonFormatter />} />
+              <Route path="/tools/color-picker" element={<ColorPalette />} />
+              <Route path="/tools/base64" element={<Base64Converter />} />
+              <Route path="/tools/pomodoro" element={<PomodoroTimer />} />
+              <Route path="/tools/image-converter" element={<ImageConverter />} />
+              <Route path="/tools/emoji-mix" element={<EmojiMix />} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/game" element={<GamePage />} />
+          </Routes>
+        </Suspense>
+      </main>
+      {!isChatPage && <Footer />}
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Header />
-            <main style={{ flex: 1 }}>
-              <Suspense fallback={null}>
-                <Routes>
-                    <Route path="/" element={
-                        <>
-                            <Hero />
-                            <div id="content" className="site-content">
-                                <div className="notice">
-                                    <i className="fa fa-bullhorn"></i> 欢迎来到 Studio-Misaki 聊天室，这里是一个安静的角落。
-                                </div>
-                                <ChatRoom />
-                                <ArticleList />
-                            </div>
-                        </>
-                    } />
-                    <Route path="/chat" element={<ChatPage />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/article/:id" element={<ArticleDetail />} />
-                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                    <Route path="/tools" element={<ToolBar />} />
-                    <Route path="/tools/json-formatter" element={<JsonFormatter />} />
-                    <Route path="/tools/color-picker" element={<ColorPalette />} />
-                    <Route path="/tools/base64" element={<Base64Converter />} />
-                    <Route path="/tools/pomodoro" element={<PomodoroTimer />} />
-                    <Route path="/tools/image-converter" element={<ImageConverter />} />
-                    <Route path="/tools/emoji-mix" element={<EmojiMix />} />
-                    <Route path="/gallery" element={<Gallery />} />
-                    <Route path="/game" element={<GamePage />} />
-                </Routes>
-              </Suspense>
-            </main>
-            <Footer />
-          </div>
+          <AppContent />
           <Live2D />
       </Router>
     </AuthProvider>

@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ArticleManager from './admin/ArticleManager';
 import UsersManager from './admin/UsersManager';
 import ArticleEditor from './admin/ArticleEditor';
+import { AdminSidebar, type ViewMode } from './admin/layout/AdminSidebar';
+import { AdminHeader } from './admin/layout/AdminHeader';
 import api from '../api';
-
-type ViewMode = 'dashboard' | 'articles' | 'editor' | 'users';
+import './admin/layout/AdminLayout.css';
 
 interface SiteVisit {
     id: number;
@@ -96,100 +97,31 @@ const AdminDashboard: React.FC = () => {
     setEditingArticleId(undefined);
   };
 
-  // Sidebar Navigation Component
-  const SidebarItem = ({ icon, label, active, onClick }: any) => (
-    <div 
-        onClick={onClick}
-        style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.8rem', 
-            padding: '1rem', 
-            borderRadius: '0.5rem', 
-            cursor: 'pointer',
-            background: active ? '#eff6ff' : 'transparent',
-            color: active ? '#3b82f6' : 'var(--text-sub)',
-            marginBottom: '0.5rem',
-            transition: 'all 0.2s'
-        }}
-    >
-        <i className={`fa ${icon}`} style={{ width: '20px', textAlign: 'center' }}></i>
-        <span style={{ fontWeight: 500 }}>{label}</span>
-    </div>
-  );
+  const getPageTitle = () => {
+    switch (view) {
+        case 'dashboard': return 'Dashboard Overview';
+        case 'articles': return 'Article Management';
+        case 'editor': return editingArticleId ? 'Edit Article' : 'New Article';
+        case 'users': return 'Users Management';
+        default: return '';
+    }
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex' }}>
-      {/* Sidebar */}
-      <div style={{ width: '260px', background: 'white', borderRight: '1px solid #e2e8f0', height: '100vh', position: 'fixed', left: 0, top: 0, padding: '2rem 1rem', zIndex: 10 }}>
-        <div style={{ padding: '0 1rem 2rem' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary-color)' }}>Sakura Admin</h2>
-        </div>
-        
-        <nav>
-            <SidebarItem 
-                icon="fa-chart-pie" 
-                label="Dashboard" 
-                active={view === 'dashboard'} 
-                onClick={() => setView('dashboard')} 
-            />
-            <SidebarItem 
-                icon="fa-file-alt" 
-                label="Articles" 
-                active={view === 'articles' || view === 'editor'} 
-                onClick={() => setView('articles')} 
-            />
-            {/* Future Modules */}
-            <SidebarItem icon="fa-users" label="Users" active={view === 'users'} onClick={() => setView('users')} />
-            <SidebarItem icon="fa-comments" label="Comments" onClick={() => {}} />
-            <SidebarItem icon="fa-cog" label="Settings" onClick={() => {}} />
-        </nav>
+    <div className="admin-container">
+      <AdminSidebar 
+        currentView={view} 
+        onViewChange={setView} 
+        onLogout={() => { logout(); navigate('/'); }} 
+      />
 
-        <div style={{ position: 'absolute', bottom: '2rem', left: '1rem', right: '1rem' }}>
-            <button 
-                onClick={() => { logout(); navigate('/'); }}
-                style={{ 
-                    width: '100%', 
-                    padding: '0.8rem', 
-                    border: '1px solid #fee2e2', 
-                    background: '#fef2f2', 
-                    color: '#ef4444', 
-                    borderRadius: '0.5rem', 
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem'
-                }}
-            >
-                <i className="fa fa-sign-out"></i> Logout
-            </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div style={{ flex: 1, marginLeft: '260px', padding: '2rem 3rem' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-            <div>
-                <h1 style={{ fontSize: '1.8rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                    {view === 'dashboard' && 'Dashboard Overview'}
-                    {view === 'articles' && 'Article Management'}
-                    {view === 'editor' && (editingArticleId ? 'Edit Article' : 'New Article')}
-                </h1>
-                <p style={{ color: 'var(--text-sub)', marginTop: '0.5rem' }}>
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                </p>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                 <div style={{ background: 'white', padding: '0.5rem 1rem', borderRadius: '2rem', boxShadow: 'var(--shadow-sm)', fontSize: '0.9rem', color: 'var(--text-sub)' }}>
-                    <i className="fa fa-clock" style={{ marginRight: '0.5rem' }}></i>
-                    {currentTime.toLocaleTimeString()}
-                 </div>
-                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1', cursor: 'pointer' }} onClick={() => navigate('/')} title="Go Home">
-                    <i className="fa fa-home"></i>
-                 </div>
-            </div>
-        </header>
+      <div className="admin-main">
+        <AdminHeader 
+            title={getPageTitle()}
+            subTitle={new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            currentTime={currentTime}
+            onHomeClick={() => navigate('/')}
+        />
 
         <AnimatePresence mode="wait">
             {view === 'dashboard' && (

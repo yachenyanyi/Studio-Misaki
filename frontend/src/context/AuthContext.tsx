@@ -1,20 +1,16 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../api';
-
-interface User {
-  username: string;
-  email?: string;
-}
+import type { User, LoginCredentials, RegisterPayload } from '../types/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isStaff: boolean;
   user: User | null;
   loading: boolean;
-  login: (credentials: any) => Promise<any>;
+  login: (credentials: LoginCredentials) => Promise<any>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
-  register: (payload: any) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -33,7 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.data.is_authenticated) {
         setUser({
           username: response.data.username,
-          email: response.data.email
+          email: response.data.email,
+          is_staff: response.data.is_staff
         });
       } else {
         setUser(null);
@@ -52,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
   }, []);
 
-  const login = async (credentials: any) => {
+  const login = async (credentials: LoginCredentials) => {
     const resp = await api.post('/auth/login/', credentials);
     const data = resp.data || {};
     if (data.token) {
@@ -76,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isStaff, user, loading, login, logout, checkAuth, register: async (payload:any) => { await api.post('/auth/register/', payload); } }}>
+    <AuthContext.Provider value={{ isAuthenticated, isStaff, user, loading, login, logout, checkAuth, register: async (payload: RegisterPayload) => { await api.post('/auth/register/', payload); } }}>
       {children}
     </AuthContext.Provider>
   );

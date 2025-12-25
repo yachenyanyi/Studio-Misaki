@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import type { ChatMessage } from '../../services/chatService';
 import MessageBubble from './MessageBubble';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Loader2 } from 'lucide-react';
 import { UI_COLORS } from '../../constants';
 
 interface Props {
@@ -10,14 +10,69 @@ interface Props {
     isNew: boolean;
 }
 
+const TypingIndicator = () => (
+    <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.5rem 1rem',
+        background: 'white',
+        borderRadius: '1rem',
+        width: 'fit-content',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+        border: '1px solid rgba(0,0,0,0.05)',
+        margin: '0 0.5rem 1rem 0.5rem'
+    }}>
+        <div style={{ 
+            width: '24px', 
+            height: '24px', 
+            borderRadius: '6px', 
+            background: 'var(--primary-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white'
+        }}>
+            <Loader2 size={14} className="animate-spin" />
+        </div>
+        <div style={{ display: 'flex', gap: '3px' }}>
+            {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                    width: '4px',
+                    height: '4px',
+                    borderRadius: '50%',
+                    background: 'var(--primary-color)',
+                    animation: `bounce 1.4s infinite ease-in-out both`,
+                    animationDelay: `${i * 0.16}s`,
+                    opacity: 0.6
+                }} />
+            ))}
+        </div>
+        <style>{`
+            @keyframes bounce {
+                0%, 80%, 100% { transform: scale(0); }
+                40% { transform: scale(1.0); }
+            }
+            .animate-spin {
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `}</style>
+    </div>
+);
+
 export const MessageList: React.FC<Props> = ({ messages, isLoading, isNew }) => {
     const endRef = useRef<HTMLDivElement>(null);
 
+    // Scroll to bottom when messages change or loading state changes
     useEffect(() => {
         if (endRef.current) {
             endRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages.length, isLoading]);
+    }, [messages, isLoading]);
 
     return (
         <div
@@ -82,21 +137,26 @@ export const MessageList: React.FC<Props> = ({ messages, isLoading, isNew }) => 
             )}
 
             {messages.map((item, i) => (
-                <div key={i} style={{ padding: '0 0.5rem' }}>
+                <div key={item.msg.id || i} style={{ padding: '0 0.5rem' }}>
                     <MessageBubble message={item.msg} />
                     {item.usage && (
                         <div style={{ 
-                            fontSize: '0.7rem', 
+                            fontSize: '0.65rem', 
                             color: '#94a3b8', 
                             marginTop: '0.25rem', 
                             textAlign: item.msg.role === 'user' ? 'right' : 'left',
-                            padding: '0 0.5rem'
+                            padding: '0 0.5rem',
+                            fontFamily: 'monospace'
                         }}>
-                            Tokens: {item.usage.total_tokens} (In: {item.usage.input_tokens}, Out: {item.usage.output_tokens})
+                            Tokens: {item.usage.total_tokens} (↑{item.usage.input_tokens} ↓{item.usage.output_tokens})
                         </div>
                     )}
                 </div>
             ))}
+            
+            {isLoading && (!messages.length || messages[messages.length - 1].msg.role === 'user') && (
+                <TypingIndicator />
+            )}
             
             <div ref={endRef} />
         </div>

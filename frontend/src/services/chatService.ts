@@ -1,27 +1,7 @@
 import api, { API_BASE_URL } from '../api';
+import type { ChatThread, ChatAssistant, ChatMessage } from '../types/chat';
 
-export interface ChatThread {
-    thread_id: string;
-    assistant_id: string;
-    title?: string;
-    updated_at: string;
-}
-
-export interface ChatAssistant {
-    assistant_id: string;
-    name?: string;
-    graph_id?: string;
-}
-
-export interface ChatMessage {
-    role: 'user' | 'assistant' | 'system' | 'tool';
-    content: string;
-    id?: string;
-    usage_metadata?: any;
-    additional_kwargs?: any;
-    response_metadata?: any;
-    tool_calls?: any[];
-}
+export type { ChatThread, ChatAssistant, ChatMessage }; // Re-export for backward compatibility if needed, or better to remove later.
 
 export const chatService = {
     getThreads: async (): Promise<ChatThread[]> => {

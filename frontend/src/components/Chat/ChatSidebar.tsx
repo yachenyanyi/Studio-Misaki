@@ -103,108 +103,148 @@ const ChatSidebar: React.FC<Props> = ({ onSelectThread, currentThreadId, refresh
                 </button>
             </div>
             
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 0.75rem' }}>
-                <div style={{ 
-                    fontSize: '0.75rem', 
-                    fontWeight: 600, 
-                    color: 'var(--text-secondary)',
-                    marginBottom: '0.5rem',
-                    padding: '0 0.5rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                }}>
-                    Recent
-                </div>
-                {threads.map(t => (
-                    <div 
-                        key={t.thread_id}
-                        onClick={() => onSelectThread(t.thread_id)}
-                        className="sidebar-item"
-                        style={{
-                            padding: '0.75rem 0.875rem',
-                            cursor: 'pointer',
-                            background: currentThreadId === t.thread_id ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: '0.75rem',
-                            borderRadius: '0.625rem',
-                            marginBottom: '0.25rem',
-                            transition: 'background 0.2s',
-                            color: currentThreadId === t.thread_id ? 'var(--primary-color)' : 'inherit',
-                            fontWeight: currentThreadId === t.thread_id ? 500 : 400
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden', flex: 1 }}>
-                            <MessageSquare size={18} style={{ flexShrink: 0, opacity: currentThreadId === t.thread_id ? 1 : 0.6 }} />
-                            <span style={{ 
-                                whiteSpace: 'nowrap', 
-                                overflow: 'hidden', 
-                                textOverflow: 'ellipsis',
-                                fontSize: '0.9rem'
-                            }}>
-                                {t.title || 'New Chat'}
-                            </span>
-                        </div>
-                        <Trash2 
-                            size={16} 
-                            style={{ opacity: 0.4, cursor: 'pointer' }}
-                            onClick={(e) => handleDelete(e, t.thread_id)} 
-                            className="hover-icon"
-                        />
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+                {threads.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8', fontSize: '0.85rem' }}>
+                        暂无聊天历史
                     </div>
-                ))}
+                ) : (
+                    threads.map(thread => (
+                        <div 
+                            key={thread.thread_id}
+                            onClick={() => onSelectThread(thread.thread_id)}
+                            style={{
+                                padding: '0.75rem 1rem',
+                                borderRadius: '0.75rem',
+                                cursor: 'pointer',
+                                background: currentThreadId === thread.thread_id ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                                border: currentThreadId === thread.thread_id ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid transparent',
+                                marginBottom: '0.25rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.75rem',
+                                transition: 'all 0.2s',
+                                position: 'relative'
+                            }}
+                            onMouseEnter={e => {
+                                if (currentThreadId !== thread.thread_id) {
+                                    e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
+                                }
+                            }}
+                            onMouseLeave={e => {
+                                if (currentThreadId !== thread.thread_id) {
+                                    e.currentTarget.style.background = 'transparent';
+                                }
+                            }}
+                        >
+                            <MessageSquare size={16} color={currentThreadId === thread.thread_id ? 'var(--primary-color)' : '#64748b'} />
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                <div style={{ 
+                                    fontSize: '0.875rem', 
+                                    fontWeight: currentThreadId === thread.thread_id ? 600 : 500,
+                                    color: currentThreadId === thread.thread_id ? 'var(--primary-color)' : '#334155',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden', 
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    {thread.title || '新对话'}
+                                </div>
+                                {thread.updated_at && (
+                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.1rem' }}>
+                                        {new Date(thread.updated_at).toLocaleDateString()}
+                                    </div>
+                                )}
+                            </div>
+                            <button 
+                                onClick={(e) => handleDelete(e, thread.thread_id)}
+                                style={{
+                                    padding: '0.4rem',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderRadius: '0.4rem',
+                                    color: '#94a3b8',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    opacity: currentThreadId === thread.thread_id ? 1 : 0,
+                                    transition: 'opacity 0.2s, color 0.2s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                                className="delete-btn"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                            <style>{`
+                                div:hover > .delete-btn { opacity: 1 !important; }
+                            `}</style>
+                        </div>
+                    ))
+                )}
             </div>
 
-            {/* User Profile Footer */}
-            <div style={{
-                padding: '1rem',
-                borderTop: '1px solid rgba(0,0,0,0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'rgba(255,255,255,0.4)',
-                backdropFilter: 'blur(10px)'
+            <div style={{ 
+                padding: '1rem', 
+                borderTop: '1px solid rgba(0,0,0,0.05)',
+                background: 'rgba(255,255,255,0.4)'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.75rem',
+                    padding: '0.5rem',
+                    marginBottom: '0.5rem'
+                }}>
                     <div style={{
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        background: 'var(--primary-color)',
+                        background: '#f1f5f9',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: 'white'
+                        color: '#64748b'
                     }}>
-                        <User size={18} />
+                        <User size={16} />
                     </div>
-                    <span style={{ 
-                        fontSize: '0.9rem', 
-                        fontWeight: 500,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                    }}>
-                        {user?.username || 'User'}
-                    </span>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {user?.username || 'Guest'}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                            {user?.email || '在线'}
+                        </div>
+                    </div>
                 </div>
                 <button 
                     onClick={handleLogout}
-                    title="Logout"
                     style={{
+                        width: '100%',
+                        padding: '0.6rem',
                         background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--text-secondary)',
-                        padding: '0.5rem',
-                        borderRadius: '0.25rem',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '0.6rem',
+                        color: '#64748b',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.background = '#fff1f2';
+                        e.currentTarget.style.color = '#e11d48';
+                        e.currentTarget.style.borderColor = '#fecdd3';
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#64748b';
+                        e.currentTarget.style.borderColor = '#e2e8f0';
                     }}
                 >
-                    <LogOut size={18} />
+                    <LogOut size={14} /> 退出登录
                 </button>
             </div>
         </div>

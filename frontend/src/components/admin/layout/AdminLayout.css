@@ -1,0 +1,138 @@
+.admin-container {
+    min-height: 100vh;
+    background: #f8fafc;
+    display: flex;
+}
+
+.admin-sidebar {
+    width: 260px;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 2rem 1rem;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-sidebar-header {
+    padding: 0 1rem 2rem;
+}
+
+.admin-sidebar-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #3b82f6);
+}
+
+.admin-sidebar-nav {
+    flex: 1;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+    color: var(--text-sub, #64748b);
+}
+
+.sidebar-item:hover {
+    background: #f1f5f9;
+}
+
+.sidebar-item.active {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.sidebar-item i {
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-item span {
+    font-weight: 500;
+}
+
+.admin-logout-btn {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #fee2e2;
+    background: #fef2f2;
+    color: #ef4444;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+}
+
+.admin-logout-btn:hover {
+    background: #fee2e2;
+}
+
+.admin-main {
+    flex: 1;
+    margin-left: 260px;
+    padding: 2rem 3rem;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+}
+
+.admin-header-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--text-main, #1e293b);
+}
+
+.admin-header-subtitle {
+    color: var(--text-sub, #64748b);
+    margin-top: 0.5rem;
+}
+
+.admin-header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.admin-clock {
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+    font-size: 0.9rem;
+    color: var(--text-sub, #64748b);
+}
+
+.admin-home-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e0e7ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6366f1;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.admin-home-btn:hover {
+    background: #c7d2fe;
+}
